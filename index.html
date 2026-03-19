@@ -1,0 +1,2393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradofi · Trading Journal</title>
+    <!-- Fonts & CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet">
+    <!-- PDF generation libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* ========== PAHLE JAISE HI STYLES RAHENGE ========== */
+        :root {
+            --bg-gradient: linear-gradient(145deg, #0f0c1f, #1b1b3a, #2a1e3a);
+            --text-primary: #f0f4ff;
+            --text-secondary: #cbd5e1;
+            --label-color: #f0f4ff;
+            --placeholder-color: #e0e8ff;
+            --card-bg: rgba(15, 20, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(0, 0, 0, 0.4);
+            --input-border: rgba(255, 255, 255, 0.15);
+            --link-color: #00ffff;
+            --muted-text: #b0c0d0;
+            --icon-color: #00ffff;
+            --btn-gradient: linear-gradient(135deg, #00ffff, #aa00ff);
+            --ai-message-bg: rgba(0, 255, 255, 0.1);
+            --user-message-bg: rgba(255, 255, 255, 0.1);
+            --up: #00ff88;
+            --down: #ff3333;
+            --nse-color: #ff9933;
+            --tv-color: #2962ff;
+        }
+        body.light-mode {
+            --bg-gradient: linear-gradient(145deg, #f5f7fa, #ffffff, #e9ecf2);
+            --text-primary: #1e293b;
+            --text-secondary: #334155;
+            --label-color: #1e293b;
+            --placeholder-color: #6b7280;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-border: rgba(0, 0, 0, 0.05);
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --input-border: #ced4da;
+            --link-color: #2563eb;
+            --muted-text: #4b5563;
+            --icon-color: #2563eb;
+            --btn-gradient: linear-gradient(135deg, #2563eb, #7c3aed);
+            --ai-message-bg: rgba(0, 100, 255, 0.1);
+            --user-message-bg: rgba(0, 0, 0, 0.05);
+            --up: #00a86b;
+            --down: #e63946;
+            --nse-color: #e65c00;
+            --tv-color: #2563eb;
+        }
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Poppins', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            min-height: 100vh;
+            padding-top: 130px;
+            position: relative;
+            transition: background 0.3s ease, color 0.2s ease;
+            overflow-x: hidden;
+        }
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        #splashScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1a1a3a 0%, #0f0c1f 100%);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1; pointer-events: all;
+        }
+        #splashScreen.fade-out { opacity: 0; pointer-events: none; }
+        .splash-content { text-align: center; animation: zoomIn 1s ease-out; }
+        .splash-icon { font-size: 7rem; color: var(--link-color); margin-bottom: 20px; filter: drop-shadow(0 0 30px var(--link-color)); animation: pulseGlow 2s infinite; }
+        .splash-logo { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 4.5rem; line-height: 1.1; letter-spacing: 8px; text-transform: uppercase; background: linear-gradient(135deg, #fff 0%, #00ffff 50%, #aa00ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 40px rgba(0,255,255,0.5); animation: slideUp 0.8s ease-out forwards; opacity: 0; transform: translateY(30px); }
+        .splash-logo div:nth-child(1) { animation-delay: 0.1s; }
+        .splash-logo div:nth-child(2) { animation-delay: 0.3s; }
+        .splash-logo div:nth-child(3) { animation-delay: 0.5s; }
+        .splash-logo div:nth-child(4) { animation-delay: 0.7s; }
+        .splash-sub { font-size: 1.4rem; color: var(--text-secondary); margin-top: 30px; opacity: 0; letter-spacing: 4px; animation: fadeIn 1s ease-out 0.9s forwards; text-shadow: 0 0 15px rgba(0,255,255,0.3); }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { to { opacity: 0.9; } }
+        @keyframes zoomIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes pulseGlow { 0% { filter: drop-shadow(0 0 20px var(--link-color)); } 50% { filter: drop-shadow(0 0 50px var(--link-color)); } 100% { filter: drop-shadow(0 0 20px var(--link-color)); } }
+        .navbar-double {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
+            background: var(--card-bg); backdrop-filter: blur(12px) saturate(180%);
+            border-bottom: 1px solid var(--card-border); box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .navbar-double .navbar-brand {
+            font-weight: 700; background: var(--btn-gradient); -webkit-background-clip: text; background-clip: text; color: transparent !important;
+            font-size: 1rem; padding: 0.2rem 0; display: flex; align-items: center; gap: 8px; line-height: 1.2;
+        }
+        .navbar-double .nav-link { color: var(--text-primary) !important; font-weight: 500; transition: 0.2s; }
+        .navbar-double .nav-link:hover { color: var(--link-color) !important; }
+        .navbar-double .top-row { background: transparent; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; }
+        .navbar-double .bottom-row { background: transparent; }
+        i { color: var(--icon-color); }
+        #mainContent { padding: 30px 0; width: 100%; animation: fadeSlideUp 0.6s ease; position: relative; z-index: 1; }
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-card { background: var(--card-bg); backdrop-filter: blur(12px) saturate(180%); border: 1px solid var(--card-border); border-radius: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 28px; color: var(--text-primary); }
+        .auth-card { max-width: 460px; margin: 60px auto; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 40px; padding: 40px; box-shadow: 0 30px 60px rgba(0,0,0,0.2); }
+        .auth-card h2 { color: var(--text-primary); }
+        .metric-card { background: rgba(0, 255, 255, 0.05); backdrop-filter: blur(8px); border: 1px solid var(--card-border); border-radius: 28px; padding: 24px 16px; color: var(--text-primary); text-align: center; transition: all 0.25s; height: 100%; position: relative; }
+        body.light-mode .metric-card { background: rgba(0, 100, 255, 0.05); }
+        .metric-card:hover { border-color: var(--link-color); transform: translateY(-4px); }
+        .metric-value { font-size: 2.2rem; font-weight: 600; line-height: 1.2; }
+        .metric-label { font-size: 1rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
+        .edit-capital { position: absolute; top: 10px; right: 10px; cursor: pointer; color: var(--link-color); font-size: 1.2rem; opacity: 0.7; transition: 0.2s; }
+        .edit-capital:hover { opacity: 1; transform: scale(1.1); }
+        .trade-card { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--card-border); border-radius: 24px; padding: 20px; margin-bottom: 20px; transition: all 0.2s; position: relative; overflow: hidden; }
+        .trade-card.win-row { background: rgba(0, 255, 0, 0.05); }
+        .trade-card.loss-row { background: rgba(255, 0, 0, 0.05); }
+        .trade-card:hover { border-color: var(--link-color); box-shadow: 0 10px 20px rgba(0,255,255,0.1); }
+        .trade-card .field-row { display: flex; margin-bottom: 10px; align-items: baseline; }
+        .trade-card .field-label { width: 100px; font-weight: 600; color: var(--text-secondary); }
+        .trade-card .field-value { flex: 1; color: var(--text-primary); }
+        .trade-card .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; clear: both; }
+        .trade-image-thumb { max-width: 60px; max-height: 60px; border-radius: 8px; cursor: pointer; border: 1px solid var(--card-border); float: right; margin-left: 10px; margin-bottom: 10px; }
+        .trade-image-thumb:hover { opacity: 0.8; }
+        .btn-custom { background: var(--btn-gradient); border: none; padding: 12px 28px; border-radius: 40px; font-weight: 600; color: white; transition: all 0.2s; box-shadow: 0 10px 20px -8px rgba(0,255,255,0.3); }
+        .btn-custom:hover { transform: scale(1.02); box-shadow: 0 15px 25px -8px #aa00ff; color: white; }
+        .btn-outline-custom { background: transparent; border: 2px solid var(--link-color); color: var(--link-color); padding: 10px 24px; border-radius: 40px; font-weight: 600; transition: 0.2s; }
+        .btn-outline-custom:hover { background: rgba(0,255,255,0.1); color: var(--text-primary); border-color: var(--link-color); }
+        .back-btn { display: inline-flex; align-items: center; gap: 8px; background: rgba(0,255,255,0.1); backdrop-filter: blur(8px); border: 1px solid var(--card-border); border-radius: 40px; padding: 10px 20px; color: var(--link-color); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s; margin-right: 20px; }
+        .back-btn:hover { background: rgba(0,255,255,0.2); color: white; border-color: var(--link-color); transform: translateX(-3px); }
+        .form-control, .form-select { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 20px; padding: 14px 18px; color: var(--text-primary); font-size: 1rem; transition: 0.2s; }
+        .form-control:focus, .form-select:focus { background: var(--input-bg); border-color: var(--link-color); box-shadow: 0 0 0 3px rgba(0,255,255,0.2); }
+        .form-control::placeholder, .form-select::placeholder, textarea::placeholder { color: var(--placeholder-color); opacity: 1; }
+        .form-label { color: var(--label-color); font-weight: 500; margin-left: 8px; font-size: 1rem; }
+        .text-muted { color: var(--muted-text) !important; }
+        .watchlist-table { width: 100%; border-collapse: collapse; }
+        .watchlist-table th { text-align: left; color: var(--text-secondary); font-size: 0.8rem; padding: 12px 8px; border-bottom: 1px solid var(--card-border); text-transform: uppercase; letter-spacing: 0.5px; }
+        .watchlist-table td { padding: 12px 8px; border-bottom: 1px solid var(--card-border); }
+        .symbol-cell { font-weight: 700; color: var(--text-primary); }
+        .price-cell { font-family: 'Inter', monospace; font-weight: 600; font-size: 1.1rem; }
+        .change-cell { font-size: 0.9rem; font-weight: 600; }
+        .remove-btn { background: transparent; border: none; color: var(--muted-text); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 5px; }
+        .remove-btn:hover { color: var(--down); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--link-color); border-radius: 32px; padding: 28px; width: 90%; max-width: 400px; color: var(--text-primary); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .modal-content h3 { margin-top: 0; color: var(--text-primary); }
+        .guide-box { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; margin: 20px 0; font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); border: 1px solid var(--card-border); }
+        .guide-box b { color: var(--link-color); }
+        .hint-text { font-size: 0.8rem; color: var(--muted-text); text-align: center; margin-top: 15px; }
+        .ai-ask { color: var(--link-color); font-weight: 600; display: block; margin-top: 8px; }
+        .cancel-link { color: var(--muted-text); text-decoration: none; font-size: 0.9rem; display: block; text-align: center; margin-top: 15px; cursor: pointer; }
+        .cancel-link:hover { color: var(--link-color); }
+        .image-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 3000; cursor: pointer; }
+        .image-modal-content { max-width: 90%; max-height: 90%; }
+        .image-modal-content img { width: 100%; height: auto; border-radius: 12px; border: 2px solid var(--link-color); }
+        .chart-container { background: var(--card-bg); border-radius: 28px; padding: 22px; border: 1px solid var(--card-border); backdrop-filter: blur(4px); }
+        .bright-link { color: var(--link-color) !important; font-weight: 600; text-decoration: none; }
+        .bright-link:hover { text-decoration: underline; }
+        .top-bar { display: flex; align-items: center; margin-bottom: 28px; flex-wrap: wrap; }
+        .live-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--link-color); margin-right: 8px; box-shadow: 0 0 10px var(--link-color); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(1.2); } 100% { opacity:1; transform:scale(1); } }
+        .fullscreen-icon { cursor: pointer; color: var(--text-primary); font-size: 1.2rem; padding: 0 10px; }
+        .fullscreen-icon:hover { color: var(--link-color); }
+        .dropdown-item i { width: 20px; margin-right: 8px; }
+        .dropdown-menu { background: var(--card-bg); border: 1px solid var(--link-color); }
+        .dropdown-item { color: var(--text-primary); }
+        .dropdown-item:hover { background: var(--link-color); color: #000; }
+        .dropdown-divider { border-color: var(--link-color); }
+        .risk-warning { color: #ffaa00; font-size: 0.9rem; margin-top: 5px; }
+        .running-badge { background: var(--link-color); color: #000; border-radius: 20px; padding: 4px 12px; font-size: 0.9rem; font-weight: 600; margin-left: 15px; }
+        .ticker-container { background: var(--card-bg); backdrop-filter: blur(12px) saturate(180%); border: 1px solid var(--card-border); border-radius: 28px; padding: 12px 20px; margin-bottom: 30px; box-shadow: 0 10px 20px -8px rgba(0,0,0,0.3); }
+        .nse-header { width: 100%; height: 48px; background: transparent; display: flex; align-items: center; overflow: hidden; border-bottom: 2px solid var(--nse-color); margin-bottom: 8px; }
+        .nse-marquee { display: inline-block; white-space: nowrap; animation: moveTicker 45s linear infinite; }
+        .nse-item { display: inline-block; padding: 0 35px; font-weight: 700; font-size: 1.1rem; color: var(--text-primary); }
+        .price-up { color: var(--up); margin-left: 8px; }
+        .tv-header { width: 100%; min-height: 48px; border-bottom: 2px solid var(--tv-color); background: transparent; }
+        @keyframes moveTicker { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+        .tradingview-widget-container { height: 100%; width: 100%; }
+        .tradingview-widget-container iframe { border-radius: 0 0 20px 20px !important; }
+        .date-filter-wrapper { display: flex; align-items: center; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 20px; padding: 5px 15px; }
+        .date-filter-wrapper i { margin-right: 8px; font-size: 1.2rem; }
+        .date-filter-wrapper input[type="date"] { background: transparent; border: none; color: var(--text-primary); outline: none; font-size: 1rem; width: 140px; }
+        .date-filter-wrapper input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        .clear-date-btn { background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: var(--text-primary); margin-left: 8px; cursor: pointer; transition: 0.2s; }
+        .clear-date-btn:hover { background: rgba(255,255,255,0.2); color: var(--link-color); }
+        .calendar-popup { position: absolute; background: var(--card-bg); backdrop-filter: blur(16px) saturate(180%); border: 1px solid var(--link-color); border-radius: 30px; padding: 25px; z-index: 1050; width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); font-family: 'Inter', sans-serif; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; color: var(--text-primary); }
+        .calendar-header button { background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: var(--link-color); font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
+        .calendar-header button:hover { background: rgba(255,255,255,0.15); border-color: var(--link-color); transform: scale(1.05); }
+        .calendar-header span { font-size: 1.2rem; font-weight: 600; letter-spacing: 0.5px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+        .weekday { color: var(--text-secondary); font-size: 0.8rem; font-weight: 500; padding: 6px 0; }
+        .calendar-day { padding: 10px 5px; border-radius: 16px; cursor: pointer; transition: 0.2s; font-size: 0.95rem; font-weight: 500; background: rgba(255,255,255,0.02); border: 1px solid transparent; }
+        .calendar-day:hover { background: rgba(255,255,255,0.1); border-color: var(--link-color); transform: scale(1.05); }
+        .calendar-day.trade-day { background: rgba(0, 255, 255, 0.15); color: var(--link-color); font-weight: 700; border-color: rgba(0,255,255,0.3); }
+        .calendar-day.trade-day:hover { background: rgba(0, 255, 255, 0.25); }
+        .calendar-day.selected { background: var(--link-color); color: #000; font-weight: 700; border-color: var(--link-color); }
+        .calendar-day.selected:hover { background: #00cccc; }
+        .calendar-day.empty { cursor: default; background: transparent; border-color: transparent; }
+        .calendar-day.empty:hover { background: transparent; border-color: transparent; transform: none; }
+        .filter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .chat-container { height: 500px; overflow-y: auto; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 24px; margin-bottom: 20px; display: flex; flex-direction: column; scroll-behavior: smooth; }
+        .message { max-width: 80%; margin-bottom: 15px; padding: 14px 20px; border-radius: 24px; word-wrap: break-word; animation: fadeIn 0.3s ease; box-shadow: 0 8px 16px rgba(0,0,0,0.2); font-size: 1rem; line-height: 1.5; position: relative; }
+        .user-message { background: linear-gradient(145deg, #00aaff30, #0066ff30); border: 1px solid var(--link-color); align-self: flex-end; margin-left: auto; color: var(--text-primary); border-bottom-right-radius: 8px; }
+        .ai-message { background: linear-gradient(145deg, #ff66cc30, #aa00ff30); border: 1px solid var(--card-border); align-self: flex-start; color: var(--text-primary); border-bottom-left-radius: 8px; }
+        .thinking-message { opacity: 0.7; font-style: italic; }
+        .chat-input-area { display: flex; gap: 10px; position: relative; align-items: center; background: var(--card-bg); border-radius: 60px; padding: 6px 6px 6px 20px; border: 1px solid var(--card-border); }
+        .chat-input { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 1rem; padding: 10px 0; }
+        .chat-input:focus { outline: none; }
+        .chat-send-btn, .chat-suggest-btn, .chat-attach-btn { background: #28a745; border: none; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+        .chat-attach-btn { background: var(--card-bg); border: 1px solid var(--link-color); color: var(--link-color); }
+        .chat-attach-btn:hover { background: var(--link-color); color: var(--card-bg); transform: scale(1.05); }
+        .chat-suggest-btn { background: var(--card-bg); border: 1px solid var(--link-color); color: var(--link-color); }
+        .chat-suggest-btn:hover { background: var(--link-color); color: var(--card-bg); transform: scale(1.05); }
+        .chat-send-btn:hover { transform: scale(1.05); background: #218838; }
+        .suggest-popup { position: absolute; bottom: 70px; right: 70px; width: 280px; max-height: 400px; overflow-y: auto; background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--link-color); border-radius: 20px; padding: 15px; z-index: 1060; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .suggest-popup .suggest-item { padding: 12px 15px; margin: 5px 0; border-radius: 12px; cursor: pointer; transition: 0.2s; color: var(--text-primary); border: 1px solid transparent; }
+        .suggest-popup .suggest-item:hover { background: var(--link-color); color: #000; border-color: var(--link-color); }
+        .chat-image-preview { max-width: 150px; max-height: 150px; border-radius: 12px; margin: 5px 0; border: 1px solid var(--card-border); cursor: pointer; }
+        .chat-image-preview:hover { opacity: 0.8; }
+        .inbox-item { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 15px; margin-bottom: 10px; }
+        .inbox-item.unread { border-left: 4px solid #28a745; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .temporary-message { opacity: 1; transition: opacity 0.5s ease; }
+        .limit-warning { color: #ffaa00; font-weight: 600; margin-bottom: 10px; }
+        @media (max-width: 768px) {
+            .metric-value { font-size: 2rem; }
+            .auth-card { margin: 20px; padding: 30px; }
+            .top-bar { flex-direction: column; align-items: start; }
+            .back-btn { margin-bottom: 10px; }
+            body { padding-top: 110px; }
+        }
+        .terms-link {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--muted-text);
+            font-size: 0.8rem;
+            text-decoration: none;
+            z-index: 1000;
+        }
+        .terms-link:hover {
+            color: var(--link-color);
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- Splash Screen -->
+    <div id="splashScreen" onclick="hideSplash()">
+        <div class="splash-content">
+            <i class="bi bi-graph-up-arrow splash-icon"></i>
+            <div class="splash-logo">
+                <div>TRADING</div>
+                <div>YOUR</div>
+                <div>TRACK</div>
+                <div>JOURNEY</div>
+            </div>
+            <div class="splash-sub">— Tradofi —</div>
+        </div>
+    </div>
+
+    <!-- Watchlist Modal -->
+    <div class="modal-overlay" id="watchlistModal">
+        <div class="modal-content">
+            <h3><i class="bi bi-plus-circle"></i> Add Symbol</h3>
+            <div class="guide-box">
+                <b>Common Symbols:</b><br>
+                • Nifty 50: <b>^NSEI</b><br>
+                • Bank Nifty: <b>^NSEBANK</b><br>
+                • Stocks: <b>RELIANCE.NS, SBIN.NS</b><br>
+                • Crypto: <b>BTC-USD, ETH-USD</b><br>
+                • Gold: <b>GC=F</b>
+            </div>
+            <input type="text" class="form-control" id="watchlistSymbolInput" placeholder="Enter Symbol (e.g. ^NSEI)">
+            <button class="btn btn-custom w-100 mt-3" onclick="addWatchlistItemFromModal()">Add to List</button>
+            <div class="hint-text">
+                *Prices may have a 1‑minute delay.<br>
+                <span class="ai-ask">💬 Ask AI: "What is the Yahoo Finance symbol for [Stock Name]?"</span>
+            </div>
+            <a class="cancel-link" onclick="closeWatchlistModal()">Cancel</a>
+        </div>
+    </div>
+
+    <!-- Image modal -->
+    <div class="image-modal-overlay" id="imageModal" onclick="closeImageModal()">
+        <div class="image-modal-content">
+            <img id="modalImage" src="" alt="">
+        </div>
+    </div>
+
+    <div class="navbar-double">
+        <div class="top-row">
+            <div class="container d-flex justify-content-between align-items-center">
+                <a class="navbar-brand d-flex align-items-center" href="#">
+                    <i class="bi bi-graph-up-arrow" style="font-size:1.5rem;"></i>
+                    <span style="font-size:1rem; font-weight:700; margin-left:5px;">Tradofi — Track Your Trading Journey</span>
+                </a>
+                <div class="fullscreen-icon" onclick="toggleFullscreen()" title="Fullscreen">
+                    <i class="bi bi-arrows-fullscreen"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-row">
+            <div class="container">
+                <nav class="navbar navbar-expand-lg p-0">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="navLinks"></ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" id="mainContent" style="padding-left: 30px; padding-right: 30px;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
+
+    <script type="module">
+        // ==================== FIREBASE v10 MODULAR SDK ====================
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import {
+            getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword,
+            createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword,
+            onAuthStateChanged, signOut
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            getFirestore, collection, addDoc, getDocs, query, where,
+            deleteDoc, doc, updateDoc, setDoc, getDoc
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAb9plOM2gNC22NZqenDsTeqSFrZP4ZtQE",
+            authDomain: "login-e28bf.firebaseapp.com",
+            projectId: "login-e28bf",
+            storageBucket: "login-e28bf.firebasestorage.app",
+            messagingSenderId: "516399855669",
+            appId: "1:516399855669:web:35e553d29e4b39fb02997c",
+            measurementId: "G-38J3J7YDH0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // ==================== GLOBAL VARIABLES ====================
+        let currentUser = null;
+        let trades = [];
+        let watchlist = [];
+        let adminMessages = [];
+        let currency = localStorage.getItem('preferred_currency') || 'USD';
+        let termsAccepted = localStorage.getItem('terms_accepted') === 'true'; // Check if terms already accepted
+
+        // ==================== SPLASH SCREEN ====================
+        function hideSplash() {
+            let splash = document.getElementById('splashScreen');
+            splash.classList.add('fade-out');
+            setTimeout(() => {
+                splash.style.display = 'none';
+                showLogin();
+            }, 1200);
+        }
+
+        // ==================== FULLSCREEN TOGGLE ====================
+        window.toggleFullscreen = function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        };
+
+        // ==================== PARTICLE BACKGROUND ====================
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+        function initParticles() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 60; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5,
+                    isUp: Math.random() > 0.5, size: Math.random() * 3 + 1
+                });
+            }
+        }
+        function drawParticles() {
+            ctx.clearRect(0, 0, width, height);
+            const upColor = getComputedStyle(document.documentElement).getPropertyValue('--up').trim();
+            const downColor = getComputedStyle(document.documentElement).getPropertyValue('--down').trim();
+            const isDark = document.body.classList.contains('dark-mode');
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > width) p.vx *= -1;
+                if (p.y < 0 || p.y > height) p.vy *= -1;
+                const color = p.isUp ? upColor : downColor;
+                ctx.fillStyle = color;
+                if (isDark) { ctx.shadowBlur = 10; ctx.shadowColor = color; }
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0;
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 150) {
+                        ctx.strokeStyle = p.isUp ? upColor : downColor;
+                        ctx.globalAlpha = 1 - (dist / 150);
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            });
+            requestAnimationFrame(drawParticles);
+        }
+        window.addEventListener('resize', initParticles);
+        initParticles(); drawParticles();
+
+        // ========== HELPER FUNCTIONS ==========
+        function showAlert(m, t = 'info') {
+            let d = document.createElement('div');
+            d.className = `alert alert-${t} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            d.style.zIndex = 9999; d.style.minWidth = '300px';
+            d.style.background = 'var(--card-bg)'; d.style.color = 'var(--text-primary)';
+            d.style.border = '1px solid var(--link-color)';
+            d.innerHTML = `${m} <button type="button" class="btn-close" data-bs-dismiss="alert" style="filter: invert(1);"></button>`;
+            document.body.appendChild(d);
+            setTimeout(() => d.remove(), 3000);
+        }
+        window.showAlert = showAlert;
+
+        function formatMoney(amount, curr) {
+            if (amount == null) return '-';
+            return (curr === 'INR' ? '₹' : '$') + amount.toFixed(2);
+        }
+        function formatLocal(amount) {
+            return currency === 'INR' ? '₹' + amount.toFixed(2) : '$' + amount.toFixed(2);
+        }
+
+        // ========== CURRENCY & THEME ==========
+        function setCurrency(c) {
+            currency = c;
+            localStorage.setItem('preferred_currency', c);
+            if (currentView && typeof currentView.name === 'function') currentView.name(...currentView.params);
+            updateNav();
+        }
+        window.setCurrency = setCurrency;
+
+        let savedTheme = localStorage.getItem('selected_theme') || 'dark';
+        if (savedTheme === 'light') { document.body.classList.add('light-mode'); document.body.classList.remove('dark-mode'); }
+        else { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); }
+        window.toggleTheme = function() {
+            if (document.body.classList.contains('light-mode')) {
+                document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode');
+                localStorage.setItem('selected_theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode');
+                localStorage.setItem('selected_theme', 'light');
+            }
+            if (currentView && typeof currentView.name === 'function') currentView.name(...currentView.params);
+        };
+
+        // ========== NAVIGATION ==========
+        let currentView = { name: showLogin, params: [] };
+        let historyStack = [];
+        function navigateTo(f, p) {
+            if (currentView.name && !['showLogin', 'showRegister', 'showForgotPasswordStep1', 'showSupport', 'showAISettings'].includes(currentView.name))
+                historyStack.push({ name: currentView.name, params: currentView.params });
+            currentView = { name: f, params: p };
+            f(...p);
+        }
+        window.navigateTo = navigateTo;
+
+        function goBack() {
+            if (historyStack.length) {
+                let prev = historyStack.pop();
+                currentView = { name: prev.name, params: prev.params };
+                prev.name(...prev.params);
+            } else {
+                currentUser ? showDashboard() : showLogin();
+            }
+        }
+        window.goBack = goBack;
+        function clearHistory() { historyStack = []; }
+        window.clearHistory = clearHistory;
+
+        // ========== ADMIN SETTINGS FROM FIRESTORE ==========
+        async function getAdminAIKey() {
+            try {
+                const docRef = doc(db, 'admin', 'ai');
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().apiKey || '' : '';
+            } catch { return ''; }
+        }
+        async function getAdminAIModel() {
+            try {
+                const docRef = doc(db, 'admin', 'ai');
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().model || 'openai/gpt-4o' : 'openai/gpt-4o';
+            } catch { return 'openai/gpt-4o'; }
+        }
+        async function getAdminTickerIndian() {
+            try {
+                const docRef = doc(db, 'admin', 'ticker');
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().indian || ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS'] : ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS'];
+            } catch { return ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS']; }
+        }
+        async function getAdminTickerGlobal() {
+            try {
+                const docRef = doc(db, 'admin', 'ticker');
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().global || ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X'] : ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X'];
+            } catch { return ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X']; }
+        }
+
+        // ========== USER LIMITS FROM FIRESTORE ==========
+        async function getUserLimit(username, type) {
+            try {
+                const docRef = doc(db, 'limits', username);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (type === 'trades') return data.tradeLimit || 5;
+                    if (type === 'images') return data.imageLimit || 1;
+                    if (type === 'ai_questions') return data.aiLimit || 5;
+                }
+            } catch (e) { console.error("Error getting limit", e); }
+            // Defaults
+            if (type === 'trades') return 5;
+            if (type === 'images') return 1;
+            if (type === 'ai_questions') return 5;
+            return 20;
+        }
+        async function getUserAIAccess(username) {
+            try {
+                const docRef = doc(db, 'limits', username);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().aiAccess || true : true;
+            } catch { return true; }
+        }
+        function incrementUserCount(username, type) {
+            // Will be handled by backend/cloud function ideally. For now, we use localStorage as temporary.
+            let today = new Date().toISOString().slice(0, 10);
+            let key = `count_${type}_${username}_${today}`;
+            let val = localStorage.getItem(key);
+            let newVal = val ? parseInt(val) + 1 : 1;
+            localStorage.setItem(key, newVal.toString());
+        }
+        function getUserTodayCount(username, type) {
+            let today = new Date().toISOString().slice(0, 10);
+            let key = `count_${type}_${username}_${today}`;
+            let val = localStorage.getItem(key);
+            return val ? parseInt(val) : 0;
+        }
+
+        // ========== ONLINE TRACKING ==========
+        function updateLastActive() {
+            if (currentUser) localStorage.setItem(`last_active_${currentUser}`, Date.now().toString());
+        }
+        setInterval(updateLastActive, 60000);
+
+        // ========== EXCHANGE RATE ==========
+        async function getExchangeRate() {
+            if (!currentUser) return 90;
+            try {
+                const docRef = doc(db, 'users', currentUser);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() && docSnap.data().exchangeRate ? docSnap.data().exchangeRate : 90;
+            } catch { return 90; }
+        }
+        async function setExchangeRate(rate) {
+            if (!currentUser) return;
+            await setDoc(doc(db, 'users', currentUser), { exchangeRate: rate }, { merge: true });
+        }
+
+        async function getDailyLossLimitUSD() {
+            if (!currentUser) return 0;
+            try {
+                const docRef = doc(db, 'users', currentUser);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() && docSnap.data().dailyLossLimit ? docSnap.data().dailyLossLimit : 0;
+            } catch { return 0; }
+        }
+        async function setDailyLossLimitUSD(amount) {
+            if (!currentUser) return;
+            await setDoc(doc(db, 'users', currentUser), { dailyLossLimit: amount }, { merge: true });
+        }
+
+        async function getCapitalUSD() {
+            if (!currentUser) return 0;
+            try {
+                const docRef = doc(db, 'users', currentUser);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() && docSnap.data().capital ? docSnap.data().capital : 0;
+            } catch { return 0; }
+        }
+        async function setCapitalUSD(amount) {
+            if (!currentUser) return;
+            await setDoc(doc(db, 'users', currentUser), { capital: amount }, { merge: true });
+        }
+
+        // ========== MESSAGES ==========
+        async function loadMessages() {
+            if (!currentUser) return [];
+            try {
+                const q = query(collection(db, 'messages'), where('to', '==', currentUser));
+                const querySnapshot = await getDocs(q);
+                adminMessages = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                return adminMessages;
+            } catch (error) {
+                console.error("Error loading messages", error);
+                return [];
+            }
+        }
+
+        async function markMessageRead(id) {
+            await updateDoc(doc(db, 'messages', id), { read: true });
+            await loadMessages();
+            if (currentView.name === showInbox) showInbox();
+        }
+
+        async function saveSupportMessage(name, message) {
+            await addDoc(collection(db, 'messages'), {
+                from: currentUser,
+                name: name,
+                message: message,
+                timestamp: new Date().toISOString(),
+                read: false,
+                to: 'admin' // Special flag for admin
+            });
+        }
+
+        // ========== FIRESTORE TRADES ==========
+        async function loadTrades() {
+            if (!currentUser) return [];
+            try {
+                const q = query(collection(db, 'trades'), where('userId', '==', currentUser));
+                const querySnapshot = await getDocs(q);
+                trades = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        date: data.date ? new Date(data.date) : new Date(data.entryDate),
+                        entryDate: data.entryDate ? new Date(data.entryDate) : null,
+                        exitDate: data.exitDate ? new Date(data.exitDate) : null
+                    };
+                });
+                return trades;
+            } catch (error) {
+                console.error('Error loading trades:', error);
+                showAlert('Failed to load trades', 'danger');
+                return [];
+            }
+        }
+
+        async function saveTradeToFirestore(tradeData) {
+            try {
+                const docRef = await addDoc(collection(db, 'trades'), {
+                    ...tradeData,
+                    userId: currentUser,
+                    createdAt: new Date().toISOString()
+                });
+                return docRef.id;
+            } catch (error) {
+                console.error('Error saving trade:', error);
+                throw error;
+            }
+        }
+
+        async function updateTradeInFirestore(tradeId, updatedData) {
+            try {
+                await updateDoc(doc(db, 'trades', tradeId), updatedData);
+            } catch (error) {
+                console.error('Error updating trade:', error);
+                throw error;
+            }
+        }
+
+        async function deleteTradeFromFirestore(tradeId) {
+            try {
+                await deleteDoc(doc(db, 'trades', tradeId));
+            } catch (error) {
+                console.error('Error deleting trade:', error);
+                throw error;
+            }
+        }
+
+        // ========== FIRESTORE WATCHLIST ==========
+        async function loadWatchlist() {
+            if (!currentUser) return [];
+            try {
+                const q = query(collection(db, 'watchlist'), where('userId', '==', currentUser));
+                const querySnapshot = await getDocs(q);
+                watchlist = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    symbol: doc.data().symbol,
+                    lastPrice: null,
+                    prevClose: null,
+                    currency: null
+                }));
+                return watchlist;
+            } catch (error) {
+                console.error('Error loading watchlist:', error);
+                return [];
+            }
+        }
+
+        async function addToWatchlist(symbol) {
+            try {
+                await addDoc(collection(db, 'watchlist'), {
+                    symbol: symbol,
+                    userId: currentUser,
+                    addedAt: new Date().toISOString()
+                });
+                await loadWatchlist();
+            } catch (error) {
+                console.error('Error adding to watchlist:', error);
+                throw error;
+            }
+        }
+
+        async function removeFromWatchlist(symbol) {
+            try {
+                const q = query(collection(db, 'watchlist'), where('userId', '==', currentUser), where('symbol', '==', symbol));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(async (doc) => {
+                    await deleteDoc(doc.ref);
+                });
+                await loadWatchlist();
+            } catch (error) {
+                console.error('Error removing from watchlist:', error);
+            }
+        }
+
+        // ========== USER PROFILE ==========
+        async function saveUserProfile(uid, data) {
+            try {
+                await setDoc(doc(db, 'users', uid), data, { merge: true });
+            } catch (error) {
+                console.error('Error saving user profile:', error);
+            }
+        }
+
+        async function getUserProfile(uid) {
+            try {
+                const docRef = doc(db, 'users', uid);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data() : null;
+            } catch (error) {
+                console.error('Error getting user profile:', error);
+                return null;
+            }
+        }
+
+        // ========== UPDATE NAV ==========
+        async function updateNav() {
+            const nav = document.getElementById('navLinks');
+            if (!nav) return;
+            if (currentUser) {
+                await loadMessages();
+                let inboxCount = adminMessages.filter(m => !m.read).length;
+                let inboxBadge = inboxCount > 0 ? `<span class="badge bg-success ms-1">${inboxCount}</span>` : '';
+                let isLight = document.body.classList.contains('light-mode');
+                let themeIcon = isLight ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+                let themeText = isLight ? 'Dark Mode' : 'Light Mode';
+                let userData = await getUserProfile(currentUser) || {};
+                let displayName = userData.name || currentUser;
+                nav.innerHTML = `
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showDashboard,[]);return false;"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showTrades,[]);return false;"><i class="bi bi-list-ul"></i> Trades</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showAddTrade,[]);return false;"><i class="bi bi-plus-circle"></i> New Trade</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showCalendar,[]);return false;"><i class="bi bi-calendar"></i> Calendar</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showMistakes,[]);return false;"><i class="bi bi-exclamation-triangle"></i> Mistakes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showImportExport,[]);return false;"><i class="bi bi-file-earmark"></i> Import/Export</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showWatchlist,[]);return false;"><i class="bi bi-eye"></i> Watchlist</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showAIChat,[]);return false;"><i class="bi bi-robot"></i> AI</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showInbox,[]);return false;"><i class="bi bi-bell"></i> Inbox${inboxBadge}</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> ${displayName}</a>
+                        <ul class="dropdown-menu dropdown-menu-end" style="background:var(--card-bg); border:1px solid var(--link-color);">
+                            <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showProfile,[]);return false;"><i class="bi bi-gear"></i> Profile</a></li>
+                            <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showChangePassword,[]);return false;"><i class="bi bi-lock"></i> Change Password</a></li>
+                            <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showDailyLossLimit,[]);return false;"><i class="bi bi-exclamation-octagon"></i> Daily Loss Limit</a></li>
+                            <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showExchangeRate,[]);return false;"><i class="bi bi-arrow-left-right"></i> Set USD→INR Rate</a></li>
+                            <li><hr class="dropdown-divider" style="border-color:var(--link-color);"></li>
+                            <li><a class="dropdown-item text-primary" href="#" onclick="toggleTheme();return false;"><i class="${themeIcon}"></i> ${themeText}</a></li>
+                            <li><a class="dropdown-item text-primary" href="#" onclick="setCurrency('USD');return false;"><i class="bi bi-currency-dollar"></i> USD</a></li>
+                            <li><a class="dropdown-item text-primary" href="#" onclick="setCurrency('INR');return false;"><i class="bi bi-currency-rupee"></i> INR</a></li>
+                            <li><hr class="dropdown-divider" style="border-color:var(--link-color);"></li>
+                            <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showSupport,[]);return false;"><i class="bi bi-envelope-paper"></i> Support / Suggestions</a></li>
+                            <li><hr class="dropdown-divider" style="border-color:var(--link-color);"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="logout();return false;"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                `;
+            } else {
+                nav.innerHTML = `
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="showLogin();return false;"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="showRegister();return false;"><i class="bi bi-person-plus"></i> Register</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-currency-exchange"></i> ${currency}</a>
+                        <ul class="dropdown-menu dropdown-menu-end" style="background:var(--card-bg); border:1px solid var(--link-color);">
+                            <li><a class="dropdown-item ${currency == 'USD' ? 'active' : ''}" href="#" onclick="setCurrency('USD');return false;">USD ($)</a></li>
+                            <li><a class="dropdown-item ${currency == 'INR' ? 'active' : ''}" href="#" onclick="setCurrency('INR');return false;">INR (₹)</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="toggleTheme();return false;"><i class="${document.body.classList.contains('light-mode') ? 'bi bi-moon-fill' : 'bi bi-sun-fill'}"></i> ${document.body.classList.contains('light-mode') ? 'Dark' : 'Light'}</a>
+                    </li>
+                `;
+            }
+        }
+
+        // ========== TERMS & CONDITIONS ==========
+        function showTerms() {
+            alert(`TERMS AND CONDITIONS
+
+1. Acceptance of Terms
+By accessing or using Tradofi ("the Platform"), you agree to be bound by these Terms and Conditions. If you do not agree, do not use the Platform.
+
+2. No Financial Advice
+The Platform is for educational and informational purposes only. It does not constitute financial, investment, or trading advice. You are solely responsible for your own trading decisions and any resulting profits or losses.
+
+3. Risk Disclaimer
+Trading in financial markets involves substantial risk. You should carefully consider your investment objectives, level of experience, and risk appetite. Past performance is not indicative of future results. The Platform does not guarantee any specific outcome.
+
+4. Data Storage & Privacy
+All data you enter into the Platform is stored in a secure cloud database (Firebase Firestore) and is associated with your account. We do not share your personal information with third parties without your consent, except as required by law. You retain full ownership of your data.
+
+5. Account Security
+You are responsible for maintaining the confidentiality of your login credentials. Any activity that occurs under your account is your responsibility. Notify us immediately if you suspect unauthorized access.
+
+6. Limitation of Liability
+To the maximum extent permitted by law, Tradofi and its operators shall not be liable for any direct, indirect, incidental, special, consequential, or exemplary damages arising from your use of the Platform.
+
+7. Indemnification
+You agree to indemnify and hold harmless Tradofi, its affiliates, and their respective officers, directors, employees, and agents from any claims, damages, liabilities, costs, or expenses arising out of your use of the Platform or violation of these Terms.
+
+8. Modifications
+We reserve the right to modify these Terms at any time. Continued use of the Platform after changes constitutes acceptance of the new Terms.
+
+9. Governing Law
+These Terms shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law provisions.
+
+10. Contact
+For any questions regarding these Terms, please contact the administrator at thequeen.goad1110@gmail.com.`);
+        }
+        window.showTerms = showTerms;
+
+        // ========== AUTH FUNCTIONS ==========
+        function showLogin() {
+            currentView = { name: showLogin, params: [] };
+            document.getElementById('mainContent').innerHTML = `
+                <div class="auth-card fade-in">
+                    <h2><i class="bi bi-box-arrow-in-right"></i> Login</h2>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="acceptTerms" ${termsAccepted ? 'checked disabled' : ''}>
+                        <label class="form-check-label" for="acceptTerms">I accept the <a href="#" onclick="showTerms();return false;">Terms & Conditions</a></label>
+                    </div>
+                    <form onsubmit="handleLogin(event)">
+                        <div class="mb-3"><label class="form-label">📧 Email</label><input type="email" class="form-control" id="loginEmail" required></div>
+                        <div class="mb-3"><label class="form-label">🔑 Password</label><input type="password" class="form-control" id="loginPassword" required></div>
+                        <button type="submit" class="btn btn-custom w-100 mb-3" ${!termsAccepted ? 'disabled' : ''} id="loginSubmitBtn">Login</button>
+                        <p class="text-center mb-0">New? <a href="#" onclick="showRegister();return false;" class="bright-link">Register</a></p>
+                        <p class="text-center"><a href="#" onclick="showForgotPasswordStep1();return false;" class="bright-link">Forgot Password?</a></p>
+                    </form>
+                    <hr style="border-color:var(--link-color);">
+                    <button onclick="googleLogin()" class="btn btn-outline-custom w-100" ${!termsAccepted ? 'disabled' : ''} id="googleLoginBtn"><i class="bi bi-google"></i> Sign in with Google</button>
+                </div>
+                <script>
+                    document.getElementById('acceptTerms').addEventListener('change', function(e) {
+                        const checked = e.target.checked;
+                        document.getElementById('loginSubmitBtn').disabled = !checked;
+                        document.getElementById('googleLoginBtn').disabled = !checked;
+                        if(checked) localStorage.setItem('terms_accepted', 'true');
+                    });
+                <\/script>
+            `;
+            // Re-attach event listener after innerHTML
+            setTimeout(() => {
+                document.getElementById('acceptTerms')?.addEventListener('change', function(e) {
+                    const checked = e.target.checked;
+                    document.getElementById('loginSubmitBtn').disabled = !checked;
+                    document.getElementById('googleLoginBtn').disabled = !checked;
+                    if (checked) localStorage.setItem('terms_accepted', 'true');
+                });
+            }, 100);
+        }
+        window.showLogin = showLogin;
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            let email = document.getElementById('loginEmail').value;
+            let password = document.getElementById('loginPassword').value;
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                currentUser = user.uid;
+                await saveUserProfile(user.uid, { name: user.displayName || email.split('@')[0], email: user.email });
+                console.log('User Name:', user.displayName);
+                console.log('User Email:', user.email);
+                await loadTrades();
+                await loadWatchlist();
+                await loadMessages();
+                updateNav();
+                clearHistory();
+                showDashboard();
+                updateLastActive();
+                showAlert('Welcome!', 'success');
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+        window.handleLogin = handleLogin;
+
+        function showRegister() {
+            currentView = { name: showRegister, params: [] };
+            document.getElementById('mainContent').innerHTML = `
+                <div class="auth-card fade-in">
+                    <h2><i class="bi bi-person-plus"></i> Register</h2>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="acceptTermsReg" ${termsAccepted ? 'checked disabled' : ''}>
+                        <label class="form-check-label" for="acceptTermsReg">I accept the <a href="#" onclick="showTerms();return false;">Terms & Conditions</a></label>
+                    </div>
+                    <form onsubmit="handleRegister(event)">
+                        <div class="mb-3"><label class="form-label">👤 Full Name</label><input type="text" class="form-control" id="regName" required></div>
+                        <div class="mb-3"><label class="form-label">📧 Email</label><input type="email" class="form-control" id="regEmail" required></div>
+                        <div class="mb-3"><label class="form-label">🔐 Password (min 6)</label><input type="password" class="form-control" id="regPassword" required minlength="6"></div>
+                        <div class="mb-3"><label class="form-label">✅ Confirm Password</label><input type="password" class="form-control" id="regConfirmPassword" required></div>
+                        <button type="submit" class="btn btn-custom w-100 mb-3" id="registerSubmitBtn" ${!termsAccepted ? 'disabled' : ''}>Register</button>
+                        <p class="text-center mb-0">Have account? <a href="#" onclick="showLogin();return false;" class="bright-link">Login</a></p>
+                    </form>
+                </div>
+                <script>
+                    document.getElementById('acceptTermsReg').addEventListener('change', function(e) {
+                        const checked = e.target.checked;
+                        document.getElementById('registerSubmitBtn').disabled = !checked;
+                        if(checked) localStorage.setItem('terms_accepted', 'true');
+                    });
+                <\/script>
+            `;
+            setTimeout(() => {
+                document.getElementById('acceptTermsReg')?.addEventListener('change', function(e) {
+                    const checked = e.target.checked;
+                    document.getElementById('registerSubmitBtn').disabled = !checked;
+                    if (checked) localStorage.setItem('terms_accepted', 'true');
+                });
+            }, 100);
+        }
+        window.showRegister = showRegister;
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            let name = document.getElementById('regName').value;
+            let email = document.getElementById('regEmail').value;
+            let password = document.getElementById('regPassword').value;
+            let confirm = document.getElementById('regConfirmPassword').value;
+            if (password !== confirm) { showAlert('Passwords do not match', 'danger'); return; }
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                await user.updateProfile({ displayName: name });
+                await saveUserProfile(user.uid, { name: name, email: email, registered: new Date().toISOString() });
+                showAlert('Registration successful! Please login.', 'success');
+                showLogin();
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+        window.handleRegister = handleRegister;
+
+        async function googleLogin() {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                await saveUserProfile(user.uid, { name: user.displayName || 'Google User', email: user.email });
+                console.log('User Name:', user.displayName);
+                console.log('User Email:', user.email);
+                currentUser = user.uid;
+                await loadTrades();
+                await loadWatchlist();
+                await loadMessages();
+                updateNav();
+                clearHistory();
+                showDashboard();
+                updateLastActive();
+                showAlert('Welcome!', 'success');
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+        window.googleLogin = googleLogin;
+
+        function showForgotPasswordStep1() {
+            currentView = { name: showForgotPasswordStep1, params: [] };
+            document.getElementById('mainContent').innerHTML = `
+                <div class="auth-card fade-in">
+                    <h2><i class="bi bi-key"></i> Reset Password</h2>
+                    <form onsubmit="sendPasswordReset(event)">
+                        <div class="mb-3"><label class="form-label">📧 Email</label><input type="email" class="form-control" id="resetEmail" required></div>
+                        <button type="submit" class="btn btn-custom w-100">Send Reset Email</button>
+                        <p class="text-center mt-2"><a href="#" onclick="showLogin();return false;" class="bright-link">Back to Login</a></p>
+                    </form>
+                </div>`;
+        }
+        window.showForgotPasswordStep1 = showForgotPasswordStep1;
+
+        function sendPasswordReset(e) {
+            e.preventDefault();
+            let email = document.getElementById('resetEmail').value;
+            sendPasswordResetEmail(auth, email)
+                .then(() => {
+                    showAlert('Password reset email sent! Check your inbox.', 'success');
+                    showLogin();
+                })
+                .catch((error) => showAlert(error.message, 'danger'));
+        }
+        window.sendPasswordReset = sendPasswordReset;
+
+        async function logout() {
+            await signOut(auth);
+            currentUser = null;
+            trades = [];
+            watchlist = [];
+            adminMessages = [];
+            clearHistory();
+            updateNav();
+            showLogin();
+            showAlert('Logged out', 'info');
+        }
+        window.logout = logout;
+
+        async function showChangePassword() {
+            if (!currentUser) { showLogin(); return; }
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in" style="max-width:600px; margin:0 auto;">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-lock"></i> Change Password</h2></div>
+                    <form onsubmit="changePassword(event)">
+                        <div class="mb-3"><label class="form-label">🔐 New Password (min 6)</label><input type="password" class="form-control" id="newPass1" required minlength="6"></div>
+                        <div class="mb-3"><label class="form-label">✅ Confirm New</label><input type="password" class="form-control" id="newPass2" required minlength="6"></div>
+                        <button type="submit" class="btn btn-custom">Update Password</button>
+                    </form>
+                </div>
+            `;
+        }
+        window.showChangePassword = showChangePassword;
+
+        async function changePassword(e) {
+            e.preventDefault();
+            let new1 = document.getElementById('newPass1').value;
+            let new2 = document.getElementById('newPass2').value;
+            if (new1 !== new2) { showAlert('New passwords do not match', 'danger'); return; }
+            if (new1.length < 6) { showAlert('Minimum 6 chars', 'warning'); return; }
+            try {
+                await updatePassword(auth.currentUser, new1);
+                showAlert('Password changed successfully', 'success');
+                goBack();
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+        window.changePassword = changePassword;
+
+        // ========== RESET ALL TRADES ==========
+        async function resetAllTrades() {
+            if (!currentUser) return;
+            if (confirm('⚠️ Are you sure you want to delete ALL your trades?')) {
+                const q = query(collection(db, 'trades'), where('userId', '==', currentUser));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(async (doc) => {
+                    await deleteDoc(doc.ref);
+                });
+                trades = [];
+                showAlert('All trades have been reset.', 'success');
+                if (currentView.name === showProfile) showProfile();
+                else if (currentView.name === showDashboard) showDashboard();
+                else if (currentView.name === showTrades) showTrades();
+            }
+        }
+        window.resetAllTrades = resetAllTrades;
+
+        // ========== QUOTE FETCHING ==========
+        async function fetchQuoteDetails(symbol) {
+            const proxy = "https://api.allorigins.win/get?url=";
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+            try {
+                const res = await fetch(proxy + encodeURIComponent(url));
+                const data = await res.json();
+                const json = JSON.parse(data.contents);
+                const result = json.chart.result[0];
+                const meta = result.meta;
+                return { price: meta.regularMarketPrice, previousClose: meta.previousClose, currency: meta.currency };
+            } catch (e) { return null; }
+        }
+
+        let nseSymbols = await getAdminTickerIndian();
+        let globalSymbols = await getAdminTickerGlobal();
+
+        async function updateNseTicker() {
+            let html = "";
+            for (let s of nseSymbols) {
+                let quote = await fetchQuoteDetails(s);
+                if (quote) {
+                    let change = quote.price - quote.previousClose;
+                    let changePercent = (change / quote.previousClose) * 100;
+                    let sign = change >= 0 ? '+' : '';
+                    html += `<span class="nse-item"><span style="color:var(--nse-color)">${s}</span> <span class="price-up">${quote.currency === 'INR' ? '₹' : '$'}${quote.price.toLocaleString()}</span> <span class="${change >= 0 ? 'price-up' : 'text-danger'}">${sign}${changePercent.toFixed(2)}%</span></span>`;
+                }
+            }
+            let tape = document.getElementById('nseTape');
+            if (tape) tape.innerHTML = html + html;
+        }
+
+        async function updateWatchlistPrices() {
+            if (!currentUser || !watchlist.length) return;
+            let updated = false;
+            for (let item of watchlist) {
+                let quote = await fetchQuoteDetails(item.symbol);
+                if (quote) {
+                    item.lastPrice = quote.price;
+                    item.prevClose = quote.previousClose;
+                    item.currency = quote.currency;
+                    updated = true;
+                } else {
+                    item.lastPrice = null; item.prevClose = null; item.currency = null;
+                }
+            }
+            if (updated && currentView.name === showWatchlist) renderWatchlistTable();
+        }
+
+        let tickerInterval = null, watchlistInterval = null;
+
+        // ========== DASHBOARD ==========
+        async function showDashboard() {
+            if (!currentUser) { showLogin(); return; }
+            await loadTrades();
+
+            if (!tickerInterval) {
+                updateNseTicker();
+                tickerInterval = setInterval(updateNseTicker, 20000);
+            }
+            if (!watchlistInterval) {
+                watchlistInterval = setInterval(updateWatchlistPrices, 20000);
+            }
+
+            let totalTrades = trades.length;
+            let winningTrades = trades.filter(t => t.pnl > 0);
+            let losingTrades = trades.filter(t => t.pnl < 0);
+            let winCount = winningTrades.length;
+            let lossCount = losingTrades.length;
+            let winRate = totalTrades ? ((winCount / totalTrades) * 100).toFixed(2) : 0;
+            let totalPnl = trades.reduce((s, t) => s + (t.pnl - (t.commission || 0)), 0);
+            let avgWin = winCount ? winningTrades.reduce((s, t) => s + t.pnl, 0) / winCount : 0;
+            let avgLoss = lossCount ? losingTrades.reduce((s, t) => s + t.pnl, 0) / lossCount : 0;
+
+            let monthlyData = {};
+            trades.forEach(t => { let m = t.date.toISOString().slice(0, 7); monthlyData[m] = (monthlyData[m] || 0) + t.pnl; });
+            let months = Object.keys(monthlyData).sort();
+            let monthlyPnL = months.map(m => monthlyData[m]);
+
+            let capUSD = await getCapitalUSD();
+            let rate = await getExchangeRate();
+            let capDisplay = currency === 'USD' ? capUSD : capUSD * rate;
+
+            let sortedTrades = [...trades].sort((a, b) => a.date - b.date);
+            let runningCapitalUSD = capUSD;
+            let capitalPoints = [{ date: sortedTrades[0]?.date || new Date(), value: runningCapitalUSD }];
+            sortedTrades.forEach(t => {
+                let pnlUSD = t.currency === 'USD' ? (t.pnl - (t.commission || 0)) : (t.pnl - (t.commission || 0)) / rate;
+                runningCapitalUSD += pnlUSD;
+                capitalPoints.push({ date: t.date, value: runningCapitalUSD });
+            });
+            let equityLabels = capitalPoints.map(p => p.date.toLocaleDateString());
+            let equityData = capitalPoints.map(p => currency === 'INR' ? p.value * rate : p.value);
+
+            let strategyMap = new Map();
+            trades.forEach(t => {
+                let strat = t.strategy || 'Other';
+                let netPnl = t.pnl - (t.commission || 0);
+                let converted = t.currency === currency ? netPnl : (t.currency === 'USD' ? netPnl * rate : netPnl / rate);
+                strategyMap.set(strat, (strategyMap.get(strat) || 0) + converted);
+            });
+            let strategyNames = Array.from(strategyMap.keys());
+            let strategyPnL = Array.from(strategyMap.values());
+
+            let dayStats = { 0: { win: 0, loss: 0 }, 1: { win: 0, loss: 0 }, 2: { win: 0, loss: 0 }, 3: { win: 0, loss: 0 }, 4: { win: 0, loss: 0 }, 5: { win: 0, loss: 0 }, 6: { win: 0, loss: 0 } };
+            trades.forEach(t => {
+                let day = t.date.getDay();
+                if (t.pnl > 0) dayStats[day].win++;
+                else if (t.pnl < 0) dayStats[day].loss++;
+            });
+            let dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            let dayWinRates = dayNames.map((d, idx) => {
+                let total = dayStats[idx].win + dayStats[idx].loss;
+                return total ? ((dayStats[idx].win / total) * 100).toFixed(1) : 0;
+            });
+
+            let todayStr = new Date().toISOString().slice(0, 10);
+            let todayLoss = trades.filter(t => t.date.toISOString().slice(0, 10) === todayStr && t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0);
+            let limitUSD = await getDailyLossLimitUSD();
+            if (limitUSD > 0 && todayLoss < 0 && Math.abs(todayLoss) > limitUSD) {
+                showAlert(`⚠️ Today's loss (${formatMoney(Math.abs(todayLoss), 'USD')}) exceeded your daily limit!`, 'warning');
+            }
+
+            let html = `
+                <div class="fade-in">
+                    <div class="ticker-container">
+                        <div class="nse-header"><div class="nse-marquee" id="nseTape">Loading Indian market...</div></div>
+                        <div class="tv-header" id="tvWidgetContainer"></div>
+                    </div>
+                    <h2 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard <span style="font-size:1rem; margin-left:15px; color:var(--link-color);">📈 Track Your Trades, Perfect Your Craft</span></h2>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-3 col-sm-6"><div class="metric-card"><i class="bi bi-cash-stack fs-1"></i><div class="metric-value">${formatMoney(totalPnl, currency)}</div><div class="metric-label">Total Net P&L</div></div></div>
+                        <div class="col-md-3 col-sm-6"><div class="metric-card"><i class="bi bi-trophy fs-1"></i><div class="metric-value">${winRate}%</div><div class="metric-label">Win Rate</div></div></div>
+                        <div class="col-md-3 col-sm-6"><div class="metric-card"><i class="bi bi-arrow-up-circle fs-1"></i><div class="metric-value">${formatMoney(avgWin, currency)}</div><div class="metric-label">Avg Win</div></div></div>
+                        <div class="col-md-3 col-sm-6"><div class="metric-card"><i class="bi bi-arrow-down-circle fs-1"></i><div class="metric-value">${formatMoney(avgLoss, currency)}</div><div class="metric-label">Avg Loss</div></div></div>
+                        <div class="col-md-3 col-sm-6"><div class="metric-card"><i class="bi bi-bar-chart-steps fs-1"></i><div class="metric-value">${totalTrades}</div><div class="metric-label">Total Trades</div></div></div>
+                        <div class="col-md-3 col-sm-6"><div class="metric-card"><i class="bi bi-check-circle-fill text-success fs-1"></i><div class="metric-value">${winCount}</div><div class="metric-label">Winning Trades</div></div></div>
+                        <div class="col-md-3 col-sm-6"><div class="metric-card"><i class="bi bi-x-circle-fill text-danger fs-1"></i><div class="metric-value">${lossCount}</div><div class="metric-label">Losing Trades</div></div></div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card" onclick="promptSetCapital()" style="cursor: pointer;">
+                                <i class="bi bi-piggy-bank fs-1"></i>
+                                <div class="metric-value">${formatMoney(capDisplay, currency)}</div>
+                                <div class="metric-label">Current Capital</div>
+                                <i class="bi bi-pencil-square edit-capital" onclick="event.stopPropagation(); promptSetCapital();" title="Set initial capital"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-md-6"><div class="chart-container"><canvas id="monthlyChart"></canvas></div></div>
+                        <div class="col-md-6"><div class="chart-container"><canvas id="winLossChart"></canvas></div></div>
+                        <div class="col-12"><div class="chart-container"><canvas id="capitalChart"></canvas></div></div>
+                        <div class="col-md-6"><div class="chart-container"><canvas id="strategyChart"></canvas></div></div>
+                        <div class="col-md-6"><div class="chart-container"><canvas id="dayChart"></canvas></div></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('mainContent').innerHTML = html;
+
+            const tvContainer = document.getElementById('tvWidgetContainer');
+            if (tvContainer) {
+                tvContainer.innerHTML = '';
+                const widgetDiv = document.createElement('div');
+                widgetDiv.className = 'tradingview-widget-container';
+                const innerDiv = document.createElement('div');
+                innerDiv.className = 'tradingview-widget-container__widget';
+                widgetDiv.appendChild(innerDiv);
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+                script.async = true;
+                script.innerHTML = JSON.stringify({
+                    "symbols": globalSymbols.map(s => ({ proName: s, title: s })),
+                    "showSymbolLogo": true,
+                    "colorTheme": document.body.classList.contains('light-mode') ? "light" : "dark",
+                    "isTransparent": false,
+                    "displayMode": "adaptive",
+                    "locale": "in"
+                });
+                widgetDiv.appendChild(script);
+                tvContainer.appendChild(widgetDiv);
+            }
+
+            setTimeout(() => {
+                new Chart(document.getElementById('monthlyChart'), { type: 'bar', data: { labels: months, datasets: [{ label: `Monthly P&L (${currency})`, data: monthlyPnL.map(v => currency === 'INR' ? v * rate : v), backgroundColor: monthlyPnL.map(v => v >= 0 ? '#28a745' : '#dc3545') }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+                new Chart(document.getElementById('winLossChart'), { type: 'doughnut', data: { labels: ['Wins', 'Losses'], datasets: [{ data: [winCount, lossCount], backgroundColor: ['#28a745', '#dc3545'] }] } });
+                new Chart(document.getElementById('capitalChart'), { type: 'line', data: { labels: equityLabels, datasets: [{ label: `Capital (${currency})`, data: equityData, borderColor: '#00ffff', backgroundColor: 'rgba(0,255,255,0.1)', fill: true, tension: 0.4 }] } });
+                new Chart(document.getElementById('strategyChart'), { type: 'bar', data: { labels: strategyNames, datasets: [{ label: `P&L by Strategy (${currency})`, data: strategyPnL, backgroundColor: '#ffaa00' }] } });
+                new Chart(document.getElementById('dayChart'), { type: 'bar', data: { labels: dayNames, datasets: [{ label: 'Win Rate %', data: dayWinRates, backgroundColor: '#00ccff' }] } });
+            }, 100);
+        }
+        window.showDashboard = showDashboard;
+
+        // ========== PROMPT CAPITAL ==========
+        async function promptSetCapital() {
+            let currentUSD = await getCapitalUSD();
+            let rate = await getExchangeRate();
+            let currentDisplay = currency === 'USD' ? currentUSD : currentUSD * rate;
+            let input = prompt(`Enter your initial capital (in ${currency}):`, currentDisplay.toFixed(2));
+            if (input !== null) {
+                let newCapDisplay = parseFloat(input);
+                if (!isNaN(newCapDisplay) && newCapDisplay >= 0) {
+                    let newCapUSD = currency === 'USD' ? newCapDisplay : newCapDisplay / rate;
+                    await setCapitalUSD(newCapUSD);
+                    if (currentView.name === showAddTrade) showAddTrade();
+                    else showDashboard();
+                    showAlert("Initial capital updated", "success");
+                } else {
+                    showAlert("Invalid amount", "warning");
+                }
+            }
+        }
+        window.promptSetCapital = promptSetCapital;
+
+        // ========== TRADES PAGE ==========
+        let currentCalendarMonth = new Date();
+
+        function showTrades() {
+            if (!currentUser) { showLogin(); return; }
+            trades = trades; // already loaded
+            let openCount = trades.filter(t => t.status === 'open').length;
+            let filtered = [...trades].sort((a, b) => b.date - a.date);
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar">
+                        <span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span>
+                        <h2 class="mb-0"><i class="bi bi-list-ul"></i> Trades</h2>
+                        ${openCount > 0 ? `<span class="running-badge"><i class="bi bi-play-circle"></i> Running: ${openCount}</span>` : ''}
+                        <button class="btn btn-custom ms-auto" onclick="navigateTo(showAddTrade,[])"><i class="bi bi-plus-circle"></i> New Trade</button>
+                    </div>
+                    <div class="filter-row">
+                        <input type="text" class="form-control" id="searchTrade" placeholder="🔍 Search asset or strategy..." style="width:250px;" oninput="applyFilters()">
+                        <div class="date-filter-wrapper">
+                            <i class="bi bi-calendar3" id="calendarIcon" style="cursor:pointer;" onclick="toggleCalendarPopup()"></i>
+                            <input type="date" id="dateFilter" onchange="applyFilters()" style="width:140px;">
+                            <span class="clear-date-btn" onclick="clearDateFilter()" title="Clear date filter">✕</span>
+                        </div>
+                    </div>
+                    <div id="tradesContainer" class="row g-4 mt-2">${renderTradeCards(filtered)}</div>
+                </div>
+                <div id="calendarPopup" class="calendar-popup" style="display:none;"></div>
+            `;
+        }
+        window.showTrades = showTrades;
+
+        function toggleCalendarPopup() {
+            const popup = document.getElementById('calendarPopup');
+            if (popup.style.display === 'none' || !popup.style.display) {
+                const icon = document.getElementById('calendarIcon');
+                const rect = icon.getBoundingClientRect();
+                popup.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+                popup.style.left = (rect.left + window.scrollX) + 'px';
+                popup.style.display = 'block';
+                renderCalendar(currentCalendarMonth);
+                function closeCalendar(e) {
+                    if (!popup.contains(e.target) && e.target.id !== 'calendarIcon') {
+                        popup.style.display = 'none';
+                        document.removeEventListener('click', closeCalendar);
+                    }
+                }
+                setTimeout(() => document.addEventListener('click', closeCalendar), 0);
+            } else {
+                popup.style.display = 'none';
+            }
+        }
+        window.toggleCalendarPopup = toggleCalendarPopup;
+
+        function renderCalendar(date) {
+            const popup = document.getElementById('calendarPopup');
+            const year = date.getFullYear(), month = date.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDay = firstDay.getDay();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+            let tradeDates = new Set(trades.map(t => t.date.toISOString().slice(0, 10)));
+            let html = `<div class="calendar-header"><button onclick="changeMonth(-1)"><i class="bi bi-chevron-left"></i></button><span>${monthNames[month]} ${year}</span><button onclick="changeMonth(1)"><i class="bi bi-chevron-right"></i></button></div><div class="calendar-grid">${dayNames.map(d => `<div class="weekday">${d}</div>`).join('')}`;
+            for (let i = 0; i < startDay; i++) html += '<div class="calendar-day empty"></div>';
+            for (let d = 1; d <= daysInMonth; d++) {
+                let dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                let hasTrade = tradeDates.has(dateStr);
+                let selectedClass = (document.getElementById('dateFilter')?.value === dateStr) ? 'selected' : '';
+                html += `<div class="calendar-day ${hasTrade ? 'trade-day' : ''} ${selectedClass}" onclick="selectDate('${dateStr}')">${d}</div>`;
+            }
+            html += '</div>';
+            popup.innerHTML = html;
+        }
+        window.renderCalendar = renderCalendar;
+
+        function changeMonth(delta) {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + delta);
+            renderCalendar(currentCalendarMonth);
+        }
+        window.changeMonth = changeMonth;
+
+        function selectDate(dateStr) {
+            document.getElementById('dateFilter').value = dateStr;
+            document.getElementById('calendarPopup').style.display = 'none';
+            applyFilters();
+        }
+        window.selectDate = selectDate;
+
+        function clearDateFilter() {
+            let dateInput = document.getElementById('dateFilter');
+            if (dateInput) { dateInput.value = ''; applyFilters(); }
+        }
+        window.clearDateFilter = clearDateFilter;
+
+        function applyFilters() {
+            let search = document.getElementById('searchTrade')?.value.toLowerCase() || '';
+            let dateFilter = document.getElementById('dateFilter')?.value;
+            let filtered = trades.filter(t => {
+                let matchesSearch = t.asset.toLowerCase().includes(search) || (t.strategy && t.strategy.toLowerCase().includes(search));
+                let matchesDate = true;
+                if (dateFilter) matchesDate = (t.date.toISOString().slice(0, 10) === dateFilter);
+                return matchesSearch && matchesDate;
+            }).sort((a, b) => b.date - a.date);
+            document.getElementById('tradesContainer').innerHTML = renderTradeCards(filtered);
+        }
+        window.applyFilters = applyFilters;
+
+        function renderTradeCards(tradesArray) {
+            if (!tradesArray.length) return '<p class="text-center text-muted py-5">No trades found.</p>';
+            return tradesArray.map(t => {
+                let rowClass = t.pnl > 0 ? 'win-row' : (t.pnl < 0 ? 'loss-row' : '');
+                let percent = '';
+                if (t.entry && t.exit && t.entry !== 0 && t.status === 'closed') {
+                    if (t.direction === 'Long') percent = ((t.exit - t.entry) / t.entry * 100).toFixed(2) + '%';
+                    else percent = ((t.entry - t.exit) / t.entry * 100).toFixed(2) + '%';
+                } else if (t.status === 'open') percent = 'Running';
+                let entryDisplay = formatMoney(t.entry, t.currency);
+                let exitDisplay = t.status === 'open' ? '<span class="badge bg-warning">Running</span>' : (t.exit ? formatMoney(t.exit, t.currency) : '-');
+                let stopDisplay = t.stop ? formatMoney(t.stop, t.currency) : '-';
+                let pnlDisplay = t.status === 'open' ? 'Unrealized' : formatMoney(t.pnl, t.currency);
+                let rrDisplay = t.riskReward ? t.riskReward.toFixed(2) : '-';
+                let statusBadge = t.status === 'open' ? '<span class="badge bg-warning ms-2">Open</span>' : '<span class="badge bg-secondary ms-2">Closed</span>';
+                let imageHtml = t.image ? `<img src="${t.image}" class="trade-image-thumb" onclick="openImageModal('${t.image}')" title="Click to enlarge">` : '';
+                let entryDateStr = t.entryDate ? t.entryDate.toLocaleString() : t.date.toLocaleString();
+                let exitDateStr = t.exitDate ? t.exitDate.toLocaleString() : (t.status === 'open' ? 'Running' : '-');
+                return `
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="trade-card ${rowClass}">
+                            ${imageHtml}
+                            <div class="field-row"><span class="field-label">📅 Entry</span><span class="field-value">${entryDateStr}</span></div>
+                            <div class="field-row"><span class="field-label">📅 Exit</span><span class="field-value">${exitDateStr}</span></div>
+                            <div class="field-row"><span class="field-label">💼 Asset</span><span class="field-value"><strong>${t.asset}</strong></span></div>
+                            <div class="field-row"><span class="field-label">🧭 Direction</span><span class="field-value"><span class="badge ${t.direction === 'Long' ? 'bg-success' : 'bg-danger'}">${t.direction}</span></span></div>
+                            <div class="field-row"><span class="field-label">📥 Entry</span><span class="field-value">${entryDisplay}</span></div>
+                            <div class="field-row"><span class="field-label">📤 Exit</span><span class="field-value">${exitDisplay}</span></div>
+                            <div class="field-row"><span class="field-label">🛑 Stop</span><span class="field-value">${stopDisplay}</span></div>
+                            <div class="field-row"><span class="field-label">📏 Size</span><span class="field-value">${t.size}</span></div>
+                            <div class="field-row"><span class="field-label">💰 P&L</span><span class="field-value ${t.pnl > 0 ? 'text-success' : 'text-danger'} fw-bold">${pnlDisplay}</span></div>
+                            <div class="field-row"><span class="field-label">📊 %</span><span class="field-value">${percent}</span></div>
+                            <div class="field-row"><span class="field-label">⚖️ R/R</span><span class="field-value">${rrDisplay}</span></div>
+                            <div class="actions">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editTrade('${t.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTrade('${t.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Image modal functions
+        function openImageModal(src) {
+            document.getElementById('modalImage').src = src;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+        window.openImageModal = openImageModal;
+
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+        window.closeImageModal = closeImageModal;
+
+        // Strategy options etc.
+        const strategyOptions = ['📊 Breakout', '📈 Trend Following', '🔄 Reversal', '📉 Scalping', '🏦 Swing', '⚡ Momentum', '📐 Range Trading', '📅 News Based'];
+        const behaviorOptions = ['😎 Disciplined', '😬 FOMO', '😡 Revenge', '😌 Patient', '😰 Nervous', '😤 Greedy', '😨 Fearful', '😐 Neutral'];
+        const emotionOptions = ['😊 Confident', '😟 Anxious', '😐 Neutral', '😤 Greedy', '😨 Fearful', '😌 Calm', '😬 Overexcited', '😞 Regret'];
+        const setupOptions = ['📅 Day Trade', '🌙 Swing Trade', '📈 Position Trade', '⚡ Scalp', '📊 Momentum', '📉 Breakdown', '📈 Breakout', '⏳ Pre-market'];
+
+        function showAddTrade(tradeId = null) {
+            if (!currentUser) { showLogin(); return; }
+            let capUSD = getCapitalUSD(); // Note: This needs to be awaited if called inside async
+            if (capUSD <= 0) {
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="glass-card fade-in" style="max-width:600px; margin:0 auto; text-align:center;">
+                        <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-exclamation-circle"></i> Capital Required</h2></div>
+                        <p class="mt-4">You need to set your initial capital before adding a trade.</p>
+                        <button class="btn btn-custom" onclick="promptSetCapital()">Set Initial Capital</button>
+                        <button class="btn btn-outline-custom mt-3" onclick="goBack()">Cancel</button>
+                    </div>
+                `;
+                return;
+            }
+            // We'll handle trade limit inside saveTrade
+            let trade = tradeId ? trades.find(t => t.id === tradeId) : null;
+            function displayValue(value) { return value?.toFixed(2) ?? ''; }
+            function formatDateTimeForInput(date) {
+                if (!date) return '';
+                let d = new Date(date);
+                return d.toISOString().slice(0, 16);
+            }
+            function buildSelect(id, label, options, currentVal) {
+                let html = `<label class="form-label">${label}</label><select class="form-select" id="${id}">`;
+                options.forEach(opt => html += `<option value="${opt}" ${currentVal === opt ? 'selected' : ''}>${opt}</option>`);
+                html += '</select>';
+                return html;
+            }
+            let isOpen = trade ? trade.status === 'open' : false;
+            let defaultEntry = trade ? formatDateTimeForInput(trade.entryDate || trade.date) : formatDateTimeForInput(new Date());
+            let defaultExit = trade?.exitDate ? formatDateTimeForInput(trade.exitDate) : '';
+
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi ${tradeId ? 'bi-pencil-square' : 'bi-plus-circle'}"></i> ${tradeId ? 'Edit Trade' : 'New Trade'}</h2></div>
+                    <form onsubmit="saveTrade(event${tradeId ? ', \'' + tradeId + '\'' : ''})">
+                        <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label">📅 Entry Date & Time</label><input type="datetime-local" class="form-control" id="tradeEntryDate" value="${defaultEntry}" required></div>
+                            <div class="col-md-6"><label class="form-label">📅 Exit Date & Time</label><input type="datetime-local" class="form-control" id="tradeExitDate" value="${defaultExit}" ${isOpen ? 'disabled' : ''}></div>
+                            <div class="col-md-6"><label class="form-label">💼 Asset</label><input type="text" class="form-control" id="tradeAsset" value="${trade?.asset || ''}" required placeholder="e.g. EUR/USD, AAPL"></div>
+                            <div class="col-md-4"><label class="form-label">📊 Leverage</label><input type="number" step="0.1" class="form-control" id="tradeLeverage" value="${trade?.leverage || '1'}" placeholder="1"></div>
+                            <div class="col-md-4"><label class="form-label">🧭 Direction</label><select class="form-select" id="tradeDirection" required onchange="calculateRisk()"><option value="Long" ${trade?.direction === 'Long' ? 'selected' : ''}>📈 Long</option><option value="Short" ${trade?.direction === 'Short' ? 'selected' : ''}>📉 Short</option></select></div>
+                            <div class="col-md-4"><label class="form-label">📥 Entry Price</label><input type="number" step="0.00001" class="form-control" id="tradeEntry" value="${displayValue(trade?.entry)}" required oninput="calculateRisk()"></div>
+                            <div class="col-md-4"><label class="form-label">📤 Exit Price</label><input type="number" step="0.00001" class="form-control" id="tradeExit" value="${displayValue(trade?.exit)}" ${isOpen ? 'disabled' : ''} placeholder="Price"></div>
+                            <div class="col-md-4"><label class="form-label">🛑 Stop Loss</label><input type="number" step="0.00001" class="form-control" id="tradeStop" value="${displayValue(trade?.stop)}" oninput="calculateRisk()"></div>
+                            <div class="col-md-4"><label class="form-label">📏 Position Size</label><input type="number" step="0.01" class="form-control" id="tradeSize" value="${trade?.size || ''}" required oninput="calculateRisk()"></div>
+                            <div class="col-md-4"><label class="form-label">🔘 Status</label><select class="form-select" id="tradeStatus" onchange="toggleExitField(); calculateRisk();"><option value="open" ${isOpen ? 'selected' : ''}>Open</option><option value="closed" ${!isOpen ? 'selected' : ''}>Closed</option></select></div>
+                            <div class="col-md-4">${buildSelect('tradeStrategy', '🧠 Strategy', strategyOptions, trade?.strategy)}</div>
+                            <div class="col-md-4">${buildSelect('tradeBehavior', '🧠 Behavior', behaviorOptions, trade?.behavior)}</div>
+                            <div class="col-md-4">${buildSelect('tradeEmotion', '😊 Emotion', emotionOptions, trade?.emotion)}</div>
+                            <div class="col-md-4">${buildSelect('tradeSetup', '⚙️ Setup', setupOptions, trade?.setup)}</div>
+                            <div class="col-12">
+                                <label class="form-label">📸 Screenshot (optional)</label>
+                                <input type="file" class="form-control" id="tradeImage" accept="image/*" onchange="previewImage(this)">
+                                <div id="imagePreview" style="margin-top:10px;"></div>
+                            </div>
+                            <div class="col-12"><label class="form-label">📝 Notes</label><textarea class="form-control" id="tradeNotes" rows="3">${trade?.notes || ''}</textarea></div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="bg-dark p-3 rounded" style="background:var(--card-bg)!important;">
+                                    <h6><i class="bi bi-calculator"></i> Risk Calculator (${currency})</h6>
+                                    <div class="row text-center">
+                                        <div class="col-md-3">Risk Amount: <span class="text-danger" id="riskAmount">${formatLocal(0)}</span></div>
+                                        <div class="col-md-3">Risk-Reward: <span class="text-primary" id="riskReward">0.00</span></div>
+                                        <div class="col-md-3">Position Value: <span id="positionValue">${formatLocal(0)}</span></div>
+                                        <div class="col-md-3">Total Capital: <span id="totalCapital">${formatLocal(getCapitalDisplay())}</span></div>
+                                    </div>
+                                    <div id="riskWarning" class="risk-warning"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4"><button type="submit" class="btn btn-custom">Save Trade</button> <button type="button" class="btn btn-outline-custom" onclick="goBack()">Cancel</button></div>
+                    </form>
+                </div>
+                <script>
+                    function toggleExitField() {
+                        let status = document.getElementById('tradeStatus').value;
+                        let exitField = document.getElementById('tradeExit');
+                        let exitDateField = document.getElementById('tradeExitDate');
+                        if (status === 'open') {
+                            exitField.disabled = true; exitField.value = ''; exitField.placeholder = 'Running';
+                            exitDateField.disabled = true; exitDateField.value = '';
+                        } else {
+                            exitField.disabled = false; exitField.placeholder = 'Price';
+                            exitDateField.disabled = false;
+                        }
+                        calculateRisk();
+                    }
+                    function previewImage(input) {
+                        let preview = document.getElementById('imagePreview');
+                        preview.innerHTML = '';
+                        if (input.files && input.files[0]) {
+                            let reader = new FileReader();
+                            reader.onload = function(e) {
+                                let img = document.createElement('img');
+                                img.src = e.target.result;
+                                img.style.maxWidth = '150px'; img.style.maxHeight = '150px'; img.style.borderRadius = '8px'; img.style.border = '1px solid var(--card-border)';
+                                preview.appendChild(img);
+                            }
+                            reader.readAsDataURL(input.files[0]);
+                        }
+                    }
+                <\/script>
+            `;
+            if (trade) calculateRisk();
+        }
+        window.showAddTrade = showAddTrade;
+
+        function calculateRisk() {
+            let entry = parseFloat(document.getElementById('tradeEntry')?.value) || 0;
+            let exit = parseFloat(document.getElementById('tradeExit')?.value) || 0;
+            let stop = parseFloat(document.getElementById('tradeStop')?.value) || 0;
+            let size = parseFloat(document.getElementById('tradeSize')?.value) || 0;
+            let dir = document.getElementById('tradeDirection')?.value;
+            let leverage = parseFloat(document.getElementById('tradeLeverage')?.value) || 1;
+            let status = document.getElementById('tradeStatus')?.value;
+            let risk = 0, rr = 0;
+            let positionValue = entry * size * leverage;
+
+            if (status === 'closed') {
+                if (dir === 'Long') {
+                    if (stop && entry > stop) {
+                        risk = (entry - stop) * size * leverage;
+                        if (risk > 0) rr = ((exit - entry) * leverage) / (entry - stop);
+                    }
+                } else {
+                    if (stop && entry < stop) {
+                        risk = (stop - entry) * size * leverage;
+                        if (risk > 0) rr = ((entry - exit) * leverage) / (stop - entry);
+                    }
+                }
+            } else {
+                if (dir === 'Long') { if (stop && entry > stop) risk = (entry - stop) * size * leverage; }
+                else { if (stop && entry < stop) risk = (stop - entry) * size * leverage; }
+            }
+
+            document.getElementById('riskAmount').innerText = formatLocal(Math.abs(risk));
+            document.getElementById('riskReward').innerText = (rr < 0 ? 0 : rr).toFixed(2);
+            document.getElementById('positionValue').innerText = formatLocal(positionValue);
+            document.getElementById('totalCapital').innerText = formatLocal(getCapitalDisplay());
+
+            let capUSD = getCapitalUSD();
+            let riskPercent = 2; // We removed risk% setting, using default 2 for calculation
+            let maxRiskUSD = capUSD * (riskPercent / 100);
+            let riskUSD = risk;
+            if (currency === 'INR') riskUSD = risk / getExchangeRate();
+            let warningDiv = document.getElementById('riskWarning');
+            warningDiv.innerHTML = riskUSD > maxRiskUSD ? `⚠️ Risk (${formatMoney(riskUSD, 'USD')}) exceeds ${riskPercent}% of capital (${formatMoney(maxRiskUSD, 'USD')})` : '';
+        }
+        window.calculateRisk = calculateRisk;
+
+        function getCapitalDisplay() {
+            return formatLocal(getCapitalUSD()); // Needs await in async context
+        }
+
+        async function saveTrade(e, tradeId = null) {
+            e.preventDefault();
+            let imageInput = document.getElementById('tradeImage');
+            if (imageInput?.files?.[0]) {
+                let todayImages = getUserTodayCount(currentUser, 'images');
+                let imageLimit = await getUserLimit(currentUser, 'images');
+                if (todayImages >= imageLimit) {
+                    showAlert(`⚠️ Daily image limit (${imageLimit}) reached.`, 'warning');
+                    return;
+                }
+            }
+
+            let rawEntry = parseFloat(document.getElementById('tradeEntry').value);
+            let rawExit = parseFloat(document.getElementById('tradeExit').value);
+            let rawStop = parseFloat(document.getElementById('tradeStop').value) || null;
+            let size = parseFloat(document.getElementById('tradeSize').value);
+            let direction = document.getElementById('tradeDirection').value;
+            let leverage = parseFloat(document.getElementById('tradeLeverage').value) || 1;
+            let status = document.getElementById('tradeStatus').value;
+            let entryDateStr = document.getElementById('tradeEntryDate').value;
+            let exitDateStr = document.getElementById('tradeExitDate').value;
+
+            if (status === 'closed' && !tradeId) incrementUserCount(currentUser, 'trades');
+
+            // For images, we need to upload to Firebase Storage in a real app, but for now we store base64 string (size issue!)
+            // In production, use Firebase Storage and store the URL.
+            if (imageInput?.files?.[0]) {
+                let file = imageInput.files[0];
+                let reader = new FileReader();
+                reader.onload = async function(ev) {
+                    if (!tradeId) incrementUserCount(currentUser, 'images');
+                    await performSave(ev.target.result, tradeId, rawEntry, rawExit, rawStop, size, direction, leverage, status, entryDateStr, exitDateStr);
+                };
+                reader.readAsDataURL(file);
+                return;
+            } else {
+                await performSave(null, tradeId, rawEntry, rawExit, rawStop, size, direction, leverage, status, entryDateStr, exitDateStr);
+            }
+        }
+        window.saveTrade = saveTrade;
+
+        async function performSave(image, tradeId, rawEntry, rawExit, rawStop, size, direction, leverage, status, entryDateStr, exitDateStr) {
+            let tradeData = {
+                entryDate: entryDateStr,
+                exitDate: status === 'closed' && exitDateStr ? exitDateStr : null,
+                date: entryDateStr,
+                asset: document.getElementById('tradeAsset').value,
+                leverage, direction,
+                entry: rawEntry,
+                exit: status === 'closed' ? rawExit : null,
+                stop: rawStop,
+                size,
+                strategy: document.getElementById('tradeStrategy').value,
+                behavior: document.getElementById('tradeBehavior').value,
+                emotion: document.getElementById('tradeEmotion').value,
+                setup: document.getElementById('tradeSetup').value,
+                notes: document.getElementById('tradeNotes').value,
+                commission: 0,
+                currency,
+                status,
+                image: image
+            };
+
+            if (status === 'closed' && tradeData.exit !== null) {
+                if (tradeData.direction === 'Long') {
+                    tradeData.pnl = (tradeData.exit - tradeData.entry) * tradeData.size * tradeData.leverage;
+                    if (tradeData.stop && tradeData.entry > tradeData.stop) {
+                        let risk = (tradeData.entry - tradeData.stop) * tradeData.leverage;
+                        tradeData.riskReward = ((tradeData.exit - tradeData.entry) * tradeData.leverage) / risk;
+                    } else tradeData.riskReward = null;
+                } else {
+                    tradeData.pnl = (tradeData.entry - tradeData.exit) * tradeData.size * tradeData.leverage;
+                    if (tradeData.stop && tradeData.entry < tradeData.stop) {
+                        let risk = (tradeData.stop - tradeData.entry) * tradeData.leverage;
+                        tradeData.riskReward = ((tradeData.entry - tradeData.exit) * tradeData.leverage) / risk;
+                    } else tradeData.riskReward = null;
+                }
+            } else {
+                tradeData.pnl = 0;
+                tradeData.riskReward = null;
+            }
+
+            if (tradeId) {
+                await updateTradeInFirestore(tradeId, tradeData);
+                showAlert('Trade updated', 'success');
+            } else {
+                await saveTradeToFirestore(tradeData);
+                showAlert('New trade added', 'success');
+            }
+            await loadTrades();
+            goBack();
+        }
+
+        function editTrade(id) { navigateTo(showAddTrade, [id]); }
+        window.editTrade = editTrade;
+
+        async function deleteTrade(id) {
+            if (confirm('Delete this trade?')) {
+                await deleteTradeFromFirestore(id);
+                await loadTrades();
+                showTrades();
+                showAlert('Trade deleted', 'info');
+            }
+        }
+        window.deleteTrade = deleteTrade;
+
+        function showCalendar() {
+            if (!currentUser) { showLogin(); return; }
+            trades = trades; // already loaded
+            document.getElementById('mainContent').innerHTML = `<div class="glass-card fade-in"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-calendar"></i> Calendar</h2></div><div id="calendar"></div></div>`;
+            setTimeout(() => {
+                new FullCalendar.Calendar(document.getElementById('calendar'), {
+                    initialView: 'dayGridMonth',
+                    events: trades.map(t => ({ title: `${t.asset} ${t.direction} ${t.status === 'open' ? '(Open)' : formatMoney(t.pnl, t.currency)}`, start: t.date.toISOString().slice(0, 10), color: t.status === 'open' ? '#ffc107' : (t.pnl > 0 ? '#28a745' : '#dc3545') })),
+                    height: 500
+                }).render();
+            }, 100);
+        }
+        window.showCalendar = showCalendar;
+
+        function showMistakes() {
+            if (!currentUser) { showLogin(); return; }
+            trades = trades; // already loaded
+            let mistakes = trades.filter(t => t.pnl < 0 || !t.stop || /fomo|revenge|greed|mistake/i.test(t.behavior || '') || /greed/i.test(t.emotion || '') || /mistake/i.test(t.notes || ''));
+            document.getElementById('mainContent').innerHTML = `<div class="glass-card fade-in"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-exclamation-triangle"></i> Mistake Gallery</h2></div><p class="text-muted mb-4">Trades with potential mistakes or losses.</p><div class="row g-4">${renderMistakeCards(mistakes)}</div></div>`;
+        }
+        window.showMistakes = showMistakes;
+
+        function renderMistakeCards(mistakesArray) {
+            if (!mistakesArray.length) return '<p class="text-center text-muted py-5">🎉 No mistakes found!</p>';
+            return mistakesArray.map(t => `
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="trade-card ${t.pnl > 0 ? 'win-row' : 'loss-row'}">
+                        <div class="field-row"><span class="field-label">📅 Entry</span><span class="field-value">${t.entryDate?.toLocaleString() || t.date.toLocaleString()}</span></div>
+                        <div class="field-row"><span class="field-label">📅 Exit</span><span class="field-value">${t.exitDate?.toLocaleString() || (t.status === 'open' ? 'Running' : '-')}</span></div>
+                        <div class="field-row"><span class="field-label">💼 Asset</span><span class="field-value"><strong>${t.asset}</strong></span></div>
+                        <div class="field-row"><span class="field-label">📥 Entry</span><span class="field-value">${formatMoney(t.entry, t.currency)}</span></div>
+                        <div class="field-row"><span class="field-label">📤 Exit</span><span class="field-value">${t.status === 'open' ? 'Running' : formatMoney(t.exit, t.currency)}</span></div>
+                        <div class="field-row"><span class="field-label">🧠 Behavior</span><span class="field-value">${t.behavior ? `<span class="badge bg-warning">${t.behavior}</span>` : '-'}</span></div>
+                        <div class="field-row"><span class="field-label">😊 Emotion</span><span class="field-value">${t.emotion ? `<span class="badge bg-info">${t.emotion}</span>` : '-'}</span></div>
+                        <div class="field-row"><span class="field-label">🛑 Stop</span><span class="field-value">${t.stop ? formatMoney(t.stop, t.currency) : '<span class="badge bg-danger">No</span>'}</span></div>
+                        <div class="field-row"><span class="field-label">💰 P&L</span><span class="field-value ${t.pnl > 0 ? 'text-success' : 'text-danger'} fw-bold">${t.status === 'open' ? 'Unrealized' : formatMoney(t.pnl, t.currency)}</span></div>
+                        <div class="field-row"><span class="field-label">📝 Notes</span><span class="field-value">${t.notes || '-'}</span></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showImportExport() {
+            if (!currentUser) { showLogin(); return; }
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-file-earmark"></i> Import/Export</h2></div>
+                    <div class="row g-4">
+                        <div class="col-md-4"><div class="card h-100" style="background:var(--card-bg); border-color:var(--link-color);"><div class="card-body text-center"><i class="bi bi-download fs-1 text-danger"></i><h4 class="mt-3 text-danger">📥 Export CSV</h4><p class="text-muted">Download trades</p><button class="btn btn-custom" onclick="exportCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Download CSV</button></div></div></div>
+                        <div class="col-md-4"><div class="card h-100" style="background:var(--card-bg); border-color:var(--link-color);"><div class="card-body text-center"><i class="bi bi-file-earmark-pdf fs-1 text-danger"></i><h4 class="mt-3 text-danger">📄 Export PDF</h4><p class="text-muted">Beautiful PDF with cards</p><button class="btn btn-custom" onclick="exportPDF()"><i class="bi bi-file-earmark-pdf"></i> Download PDF</button></div></div></div>
+                        <div class="col-md-4"><div class="card h-100" style="background:var(--card-bg); border-color:var(--link-color);"><div class="card-body text-center"><i class="bi bi-upload fs-1 text-danger"></i><h4 class="mt-3 text-danger">📤 Import CSV</h4><input type="file" id="csvFile" accept=".csv" class="form-control mb-3" style="background:var(--input-bg); color:var(--text-primary);"><button class="btn btn-custom" onclick="importCSV()"><i class="bi bi-cloud-upload"></i> Import</button></div></div></div>
+                    </div>
+                    <div class="mt-4 p-3" style="background:var(--card-bg); border-radius:20px;"><h6>CSV format:</h6><code>Date,Asset,Direction,Entry,Exit,Stop Loss,Size,Strategy,Notes,Behavior,Emotion,Setup,Currency,PnL,Status</code></div>
+                </div>
+            `;
+        }
+        window.showImportExport = showImportExport;
+
+        function exportCSV() {
+            if (!trades.length) { showAlert('No trades', 'warning'); return; }
+            let csv = 'Date,Asset,Direction,Entry,Exit,Stop Loss,Size,Strategy,Notes,Behavior,Emotion,Setup,Currency,PnL,Status\n';
+            trades.forEach(t => csv += `${t.date.toISOString().slice(0, 10)},${t.asset},${t.direction},${t.entry},${t.exit || ''},${t.stop || ''},${t.size},"${t.strategy || ''}","${t.notes || ''}","${t.behavior || ''}","${t.emotion || ''}","${t.setup || ''}",${t.currency},${t.pnl},${t.status || 'closed'}\n`);
+            let blob = new Blob(['\uFEFF' + csv], { type: 'text/csv' });
+            let link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `trades_${currentUser}_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+            showAlert('Exported', 'success');
+        }
+        window.exportCSV = exportCSV;
+
+        async function importCSV() {
+            let file = document.getElementById('csvFile').files[0];
+            if (!file) { showAlert('Select file', 'warning'); return; }
+            let reader = new FileReader();
+            reader.onload = async function(e) {
+                let lines = e.target.result.split('\n');
+                let imported = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    let vals = lines[i].split(',');
+                    if (vals.length < 14) continue;
+                    try {
+                        let trade = {
+                            entryDate: vals[0] || new Date().toISOString(),
+                            date: vals[0] || new Date().toISOString(),
+                            asset: vals[1]?.trim() || 'unknown',
+                            direction: vals[2]?.trim() || 'Long',
+                            entry: parseFloat(vals[3]) || 0,
+                            exit: vals[4] ? parseFloat(vals[4]) : null,
+                            stop: vals[5] ? parseFloat(vals[5]) : null,
+                            size: parseFloat(vals[6]) || 0,
+                            strategy: vals[7]?.trim() || '',
+                            notes: vals[8]?.trim() || '',
+                            behavior: vals[9]?.trim() || '',
+                            emotion: vals[10]?.trim() || '',
+                            setup: vals[11]?.trim() || '',
+                            currency: vals[12]?.trim() || 'USD',
+                            pnl: parseFloat(vals[13]) || 0,
+                            status: vals[14]?.trim() || 'closed',
+                            image: null,
+                            exitDate: null
+                        };
+                        if (trade.status === 'closed' && trade.exit) {
+                            if (trade.direction === 'Long' && trade.stop && trade.entry > trade.stop) {
+                                trade.riskReward = (trade.exit - trade.entry) / (trade.entry - trade.stop);
+                            } else if (trade.direction === 'Short' && trade.stop && trade.entry < trade.stop) {
+                                trade.riskReward = (trade.entry - trade.exit) / (trade.stop - trade.entry);
+                            } else trade.riskReward = null;
+                        } else trade.riskReward = null;
+                        await saveTradeToFirestore(trade);
+                        imported++;
+                    } catch (err) { }
+                }
+                await loadTrades();
+                showAlert(imported + ' trades imported', 'success');
+                showTrades();
+            };
+            reader.readAsText(file);
+        }
+        window.importCSV = importCSV;
+
+        function exportPDF() {
+            if (!trades.length) { showAlert('No trades', 'warning'); return; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 15;
+            let y = 25;
+
+            doc.setFontSize(20); doc.setTextColor(0, 255, 255);
+            doc.text('TRADING', margin, y); doc.text('YOUR', margin, y + 8); doc.text('TRACK', margin, y + 16); doc.text('JOURNEY', margin, y + 24);
+            y += 35;
+            doc.setTextColor(0); doc.setFontSize(20); doc.text('Trading Journal Report', margin, y); y += 10;
+            doc.setFontSize(12); doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, y); y += 6;
+            doc.text(`User: ${currentUser}`, margin, y); y += 10;
+
+            let total = trades.length, wins = trades.filter(t => t.pnl > 0).length, losses = trades.filter(t => t.pnl < 0).length;
+            let winRate = total ? ((wins / total) * 100).toFixed(2) : 0;
+            let totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+            let avgWin = wins ? trades.filter(t => t.pnl > 0).reduce((s, t) => s + t.pnl, 0) / wins : 0;
+            let avgLoss = losses ? trades.filter(t => t.pnl < 0).reduce((s, t) => s + t.pnl, 0) / losses : 0;
+
+            doc.setFontSize(13);
+            doc.text(`Total Trades: ${total}`, margin, y); y += 6;
+            doc.text(`Wins: ${wins} / Losses: ${losses}`, margin, y); y += 6;
+            doc.text(`Win Rate: ${winRate}%`, margin, y); y += 6;
+            doc.text(`Total P&L: ${formatMoney(totalPnl, 'USD')}`, margin, y); y += 6;
+            doc.text(`Avg Win: ${formatMoney(avgWin, 'USD')}`, margin, y); y += 6;
+            doc.text(`Avg Loss: ${formatMoney(avgLoss, 'USD')}`, margin, y); y += 12;
+
+            const addTradeCard = (trade, startY) => {
+                const cardWidth = pageWidth - 2 * margin, left = margin;
+                let lines = [];
+                const addLine = (label, value) => lines.push({ label, value });
+                addLine('Entry', trade.entryDate?.toLocaleString() || trade.date.toLocaleString());
+                addLine('Exit', trade.status === 'closed' ? (trade.exitDate?.toLocaleString() || '-') : 'Running');
+                addLine('Asset', trade.asset);
+                addLine('Direction', trade.direction);
+                addLine('Entry Price', formatMoney(trade.entry, trade.currency));
+                addLine('Exit Price', trade.status === 'closed' ? formatMoney(trade.exit, trade.currency) : 'Running');
+                addLine('Stop', trade.stop ? formatMoney(trade.stop, trade.currency) : '-');
+                addLine('Size', trade.size.toString());
+                addLine('P&L', trade.status === 'open' ? 'Unrealized' : formatMoney(trade.pnl, trade.currency));
+                addLine('Status', trade.status === 'open' ? 'Open' : 'Closed');
+                addLine('Strategy', trade.strategy || '-');
+                addLine('Behavior', trade.behavior || '-');
+                addLine('Emotion', trade.emotion || '-');
+                addLine('Setup', trade.setup || '-');
+
+                let notesLines = doc.splitTextToSize(trade.notes || '-', cardWidth - 30);
+                let lineHeight = 7;
+                let totalHeight = lines.length * lineHeight + 6 + notesLines.length * 5 + 10;
+
+                if (trade.pnl > 0) doc.setFillColor(200, 255, 200);
+                else if (trade.pnl < 0) doc.setFillColor(255, 200, 200);
+                else doc.setFillColor(240, 240, 240);
+                doc.roundedRect(left, startY, cardWidth, totalHeight, 3, 3, 'F');
+                doc.setTextColor(0); doc.setFontSize(11);
+                let ty = startY + 7;
+                lines.forEach(line => { doc.text(`${line.label}: ${line.value}`, left + 5, ty); ty += lineHeight; });
+                doc.text('Notes:', left + 5, ty); ty += 5; doc.setFontSize(10);
+                notesLines.forEach(line => { doc.text(line, left + 15, ty); ty += 5; });
+                doc.setDrawColor(0); doc.roundedRect(left, startY, cardWidth, totalHeight, 3, 3, 'S');
+                return totalHeight + 8;
+            };
+
+            for (let trade of trades) {
+                if (y > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); y = 20; }
+                y += addTradeCard(trade, y);
+            }
+            doc.save(`trades_${currentUser}_${new Date().toISOString().slice(0, 10)}.pdf`);
+            showAlert('PDF exported', 'success');
+        }
+        window.exportPDF = exportPDF;
+
+        function showSupport() {
+            if (!currentUser) { showLogin(); return; }
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in" style="max-width:650px; margin:0 auto;">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2 class="mb-0"><i class="bi bi-envelope-paper"></i> Support / Suggestions</h2></div>
+                    <div style="background:#1a1c2c; padding:30px; border-radius:20px; color:white; border:1px solid #333;">
+                        <div style="display:flex; align-items:center; margin-bottom:20px;"><span style="font-size:24px; margin-right:10px;">📧</span><h2 style="margin:0; font-size:22px;">Support / Suggestions</h2></div>
+                        <div style="margin-bottom:20px;"><label style="display:block; margin-bottom:8px; color:#ccc;">👤 Your Name</label><input type="text" id="userName" placeholder="Enter your name" style="width:100%; padding:12px; background:#2d2f41; border:none; border-radius:10px; color:white;"></div>
+                        <div style="margin-bottom:20px;"><label style="display:block; margin-bottom:8px; color:#ccc;">📝 Message</label><textarea id="userMsg" rows="5" placeholder="Your feedback..." style="width:100%; padding:12px; background:#2d2f41; border:none; border-radius:15px; color:white;"></textarea></div>
+                        <button onclick="sendSuggestion()" style="background:linear-gradient(90deg,#66ffcc,#cc99ff); color:white; border:none; padding:12px 30px; border-radius:25px; cursor:pointer; font-weight:bold; width:100%;"><span style="margin-right:8px;">📩</span> Send Email</button>
+                        <div id="thankYouMessage" class="thankyou-message" style="display:none; margin-top:15px;"><span style="font-size:24px;">🙏</span> Thank you!</div>
+                    </div>
+                </div>
+            `;
+        }
+        window.showSupport = showSupport;
+
+        async function sendSuggestion() {
+            const targetEmail = "thequeen.goad1110@gmail.com";
+            const name = document.getElementById('userName').value;
+            const message = document.getElementById('userMsg').value;
+            if (!name || !message) { alert("Please fill all fields."); return; }
+            await saveSupportMessage(name, message);
+            const subject = encodeURIComponent("New Suggestion from " + name);
+            const body = encodeURIComponent("Name: " + name + "\n\nMessage: " + message);
+            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
+            } else {
+                window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${targetEmail}&su=${subject}&body=${body}`, '_blank');
+            }
+            let thankYou = document.getElementById('thankYouMessage');
+            if (thankYou) { thankYou.style.display = 'flex'; setTimeout(() => thankYou.style.display = 'none', 5000); }
+        }
+        window.sendSuggestion = sendSuggestion;
+
+        async function showInbox() {
+            if (!currentUser) { showLogin(); return; }
+            await loadMessages();
+            let messages = adminMessages.filter(m => m.to === currentUser);
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2 class="mb-0"><i class="bi bi-bell"></i> Inbox</h2></div>
+                    <div id="inboxMessages">${messages.length === 0 ? '<p class="text-center text-muted py-5">No messages yet.</p>' : messages.map(m => `
+                        <div class="inbox-item ${m.read ? '' : 'unread'}" onclick="markMessageRead('${m.id}')">
+                            <div class="d-flex justify-content-between"><strong>From: Admin</strong><small>${new Date(m.timestamp).toLocaleString()}</small></div>
+                            <p class="mt-2">${m.message}</p>${!m.read ? '<span class="badge bg-success">New</span>' : ''}
+                        </div>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        window.showInbox = showInbox;
+
+        // AI Chat
+        let chatMessages = [], suggestOpen = false, currentImageData = null, welcomeTimeout = null, thinkingId = null;
+        async function showAIChat() {
+            if (!currentUser) { showLogin(); return; }
+            let aiAccess = await getUserAIAccess(currentUser);
+            if (!aiAccess) { showAlert('AI access denied', 'warning'); return; }
+            trades = trades; // already loaded
+            chatMessages = []; suggestOpen = false; currentImageData = null;
+            const welcomeMsg = 'Hello! I am your AI trading assistant. Main aapke trades ka vishleshan kar sakta hoon, duniya ki khabar bata sakta hoon, aur chart samajh sakta hoon – poochhiye kuchh bhi! (Disclaimer: Only educational.)';
+            const msgId = Date.now();
+            chatMessages.push({ id: msgId, sender: 'ai', text: welcomeMsg, temporary: true });
+            renderChat();
+            if (welcomeTimeout) clearTimeout(welcomeTimeout);
+            welcomeTimeout = setTimeout(() => { chatMessages = chatMessages.filter(m => m.id !== msgId); renderChat(); }, 10000);
+        }
+        window.showAIChat = showAIChat;
+
+        function renderChat() {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2 class="mb-0"><i class="bi bi-robot"></i> AI</h2></div>
+                    <div id="chatMessages" class="chat-container d-flex flex-column">${chatMessages.map(msg => `<div class="message ${msg.sender === 'user' ? 'user-message' : 'ai-message'} ${msg.thinking ? 'thinking-message' : ''} ${msg.temporary ? 'temporary-message' : ''}">${msg.text}</div>`).join('')}</div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chatInput" class="chat-input" placeholder="Type your question..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+                        <button class="chat-attach-btn" onclick="document.getElementById('chatImageUpload').click()"><i class="bi bi-image"></i></button>
+                        <input type="file" id="chatImageUpload" accept="image/*" style="display:none;" onchange="handleChatImageUpload(this)">
+                        ${currentImageData ? `<img src="${currentImageData}" class="chat-image-preview" style="position:absolute; bottom:70px; right:140px;" onclick="removeChatImage()" title="Click to remove">` : ''}
+                        <button class="chat-suggest-btn" onclick="toggleSuggestPopup()"><i class="bi bi-question-circle"></i></button>
+                        <button class="chat-send-btn" onclick="sendChatMessage()"><i class="bi bi-send"></i></button>
+                    </div>
+                    <div id="suggestPopup" class="suggest-popup" style="display:none;">${[
+                'How many trades have I taken?', 'What is my total profit/loss?', 'What is my win rate?', 'Show me my last trade', 'Best performing asset?', 'Worst performing asset?', 'Profit from Breakout strategy?', 'Loss in January?', 'How did I perform when I was FOMO?', 'Longest winning streak?', 'Average risk-reward ratio?', 'List my recent trades', 'Trades on 3 feb 2028', 'What can you do?', 'How many winning trades?', 'How many losing trades?', 'Average win?', 'Average loss?', 'What is today\'s market news?', 'Explain this chart'
+            ].map(s => `<div class="suggest-item" onclick="selectSuggestion('${s}')">${s}</div>`).join('')}</div>
+                </div>
+            `;
+            scrollChatToBottom();
+        }
+
+        function handleChatImageUpload(input) {
+            if (input.files?.[0]) {
+                let reader = new FileReader();
+                reader.onload = e => { currentImageData = e.target.result; renderChat(); };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        window.handleChatImageUpload = handleChatImageUpload;
+
+        function removeChatImage() { currentImageData = null; renderChat(); }
+        window.removeChatImage = removeChatImage;
+
+        function toggleSuggestPopup() {
+            let popup = document.getElementById('suggestPopup');
+            if (!popup) return;
+            if (suggestOpen) { popup.style.display = 'none'; suggestOpen = false; } else {
+                popup.style.display = 'block'; suggestOpen = true;
+                setTimeout(() => {
+                    document.addEventListener('click', function closeSuggest(e) {
+                        if (!popup.contains(e.target) && !e.target.closest('.chat-suggest-btn')) {
+                            popup.style.display = 'none'; suggestOpen = false; document.removeEventListener('click', closeSuggest);
+                        }
+                    });
+                }, 100);
+            }
+        }
+        window.toggleSuggestPopup = toggleSuggestPopup;
+
+        function selectSuggestion(text) {
+            document.getElementById('chatInput').value = text;
+            toggleSuggestPopup();
+            sendChatMessage();
+        }
+        window.selectSuggestion = selectSuggestion;
+
+        function scrollChatToBottom() {
+            setTimeout(() => { let chatDiv = document.getElementById('chatMessages'); if (chatDiv) chatDiv.scrollTop = chatDiv.scrollHeight; }, 100);
+        }
+
+        async function sendChatMessage() {
+            let todayAi = getUserTodayCount(currentUser, 'ai_questions');
+            let aiLimit = await getUserLimit(currentUser, 'ai_questions');
+            if (todayAi >= aiLimit) { showAlert(`Daily AI limit (${aiLimit}) reached.`, 'warning'); return; }
+
+            let input = document.getElementById('chatInput');
+            let text = input.value.trim();
+            if (!text && !currentImageData) return;
+            let userMsg = text + (currentImageData ? ' [Image attached]' : '');
+            chatMessages.push({ sender: 'user', text: userMsg });
+            thinkingId = Date.now();
+            chatMessages.push({ id: thinkingId, sender: 'ai', text: 'Thinking...', thinking: true });
+            renderChat();
+            setTimeout(() => {
+                generateAIResponse(text, currentImageData).then(response => {
+                    incrementUserCount(currentUser, 'ai_questions');
+                    chatMessages = chatMessages.filter(m => m.id !== thinkingId);
+                    chatMessages.push({ sender: 'ai', text: response });
+                    currentImageData = null;
+                    renderChat();
+                }).catch(err => {
+                    chatMessages = chatMessages.filter(m => m.id !== thinkingId);
+                    chatMessages.push({ sender: 'ai', text: '❌ Error: ' + err.message });
+                    renderChat();
+                });
+            }, 500);
+            input.value = '';
+        }
+        window.sendChatMessage = sendChatMessage;
+
+        async function generateAIResponse(question, imageData) {
+            let apiKey = await getAdminAIKey();
+            if (!apiKey) return fallbackLocalResponse(question);
+            let model = await getAdminAIModel();
+            let systemMessage = buildSystemPrompt();
+            let messages = [{ role: 'system', content: systemMessage }];
+            if (imageData) {
+                messages.push({ role: 'user', content: [{ type: 'text', text: question || 'Analyze this chart.' }, { type: 'image_url', image_url: { url: imageData } }] });
+            } else {
+                messages.push({ role: 'user', content: question });
+            }
+            try {
+                let res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': window.location.origin, 'X-Title': 'Tradofi' },
+                    body: JSON.stringify({ model, messages, temperature: 0.5, max_tokens: 500 })
+                });
+                if (!res.ok) throw new Error(`API error ${res.status}`);
+                let data = await res.json();
+                return data.choices[0].message.content;
+            } catch (err) {
+                console.error(err);
+                return `❌ AI error: ${err.message}. Using fallback.`;
+            }
+        }
+
+        function buildSystemPrompt() {
+            let total = trades.length, wins = trades.filter(t => t.pnl > 0).length, losses = trades.filter(t => t.pnl < 0).length;
+            let winRate = total ? (wins / total * 100).toFixed(2) : 0;
+            let totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+            let avgWin = wins ? trades.filter(t => t.pnl > 0).reduce((s, t) => s + t.pnl, 0) / wins : 0;
+            let avgLoss = losses ? trades.filter(t => t.pnl < 0).reduce((s, t) => s + t.pnl, 0) / losses : 0;
+            let bestTrade = trades.length ? trades.reduce((max, t) => t.pnl > max.pnl ? t : max, trades[0]) : null;
+            let worstTrade = trades.length ? trades.reduce((min, t) => t.pnl < min.pnl ? t : min, trades[0]) : null;
+            let recentTrades = trades.sort((a, b) => b.date - a.date).slice(0, 5).map(t => `${t.date.toLocaleDateString()} ${t.asset} ${t.direction} PnL: ${formatMoney(t.pnl, t.currency)}`).join('\n');
+            let openTrades = trades.filter(t => t.status === 'open');
+            let openSummary = openTrades.length ? openTrades.map(t => `${t.asset} entry ${formatMoney(t.entry, t.currency)} size ${t.size}`).join('\n') : 'None';
+            return `You are a comprehensive trading assistant. You can answer questions about:
+- User's own trading journal (use the data below)
+- General market news and events (use your knowledge)
+- Chart analysis when an image is provided
+- Trading strategies, risk management, educational topics
+
+Answer concisely, using Hinglish if the user asks in Hinglish. Provide only the requested information. All information is for educational purposes only.
+
+Current journal data:
+- Total trades: ${total}
+- Wins: ${wins}, Losses: ${losses}
+- Win rate: ${winRate}%
+- Total P&L: ${formatMoney(totalPnl, currency)}
+- Average win: ${formatMoney(avgWin, currency)}
+- Average loss: ${formatMoney(avgLoss, currency)}
+- Best trade: ${bestTrade ? formatMoney(bestTrade.pnl, bestTrade.currency) + ' on ' + bestTrade.date.toLocaleDateString() : 'N/A'}
+- Worst trade: ${worstTrade ? formatMoney(worstTrade.pnl, worstTrade.currency) + ' on ' + worstTrade.date.toLocaleDateString() : 'N/A'}
+- Open trades: ${openSummary}
+- Recent trades:\n${recentTrades}`;
+        }
+
+        function fallbackLocalResponse(question) {
+            let q = question.toLowerCase().trim();
+            let isHinglish = /hai|ka|kya|kitna/.test(q);
+            let total = trades.length, wins = trades.filter(t => t.pnl > 0).length, losses = trades.filter(t => t.pnl < 0).length;
+            let totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+            let winRate = total ? ((wins / total) * 100).toFixed(2) : 0;
+            let lastTrade = trades.length ? trades.sort((a, b) => b.date - a.date)[0] : null;
+
+            if (q.includes('news') || q.includes('market') || q.includes('today')) return "For live news, please configure an API key with a search-enabled model.";
+            if (q.includes('chart') && currentImageData) return "Image received. With a vision model, I can analyze charts.";
+
+            let parsedDate = null;
+            function parseDateFromQuery(str) {
+                if (str.includes('today')) return new Date();
+                if (str.includes('yesterday')) { let d = new Date(); d.setDate(d.getDate() - 1); return d; }
+                let match = str.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+                if (match) return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+                match = str.match(/\b(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})\b/);
+                if (match) {
+                    let day = parseInt(match[1]), month = parseInt(match[2]) - 1, year = parseInt(match[3]);
+                    if (year < 100) year += 2000;
+                    return new Date(year, month, day);
+                }
+                return null;
+            }
+            parsedDate = parseDateFromQuery(q);
+            if (parsedDate && !isNaN(parsedDate.getTime())) {
+                let year = parsedDate.getFullYear(), month = String(parsedDate.getMonth() + 1).padStart(2, '0'), day = String(parsedDate.getDate()).padStart(2, '0');
+                let dateStr = `${year}-${month}-${day}`;
+                let dayTrades = trades.filter(t => {
+                    let tYear = t.date.getFullYear(), tMonth = String(t.date.getMonth() + 1).padStart(2, '0'), tDay = String(t.date.getDate()).padStart(2, '0');
+                    return `${tYear}-${tMonth}-${tDay}` === dateStr;
+                });
+                if (dayTrades.length > 0) {
+                    let details = dayTrades.map(t => `${t.asset} ${t.direction} P&L: ${formatMoney(t.pnl, t.currency)}`).join('<br>');
+                    return isHinglish ? `📅 ${parsedDate.toLocaleDateString()} ko aapne ${dayTrades.length} trade(s) liye:<br>${details}` : `📅 On ${parsedDate.toLocaleDateString()} you had ${dayTrades.length} trade(s):<br>${details}`;
+                } else {
+                    return isHinglish ? `❌ ${parsedDate.toLocaleDateString()} ko koi trade nahi mila.` : `❌ No trades found on ${parsedDate.toLocaleDateString()}.`;
+                }
+            }
+
+            if (q.includes('how many') || q.includes('kitne')) return isHinglish ? `📊 Aapne **${total}** trades liye hain.` : `📊 You have taken **${total}** trades.`;
+            if (q.includes('total profit') || q.includes('total loss') || q.includes('total pnl')) return isHinglish ? `💰 Total P&L: **${formatMoney(totalPnl, currency)}**` : `💰 Total P&L: **${formatMoney(totalPnl, currency)}**`;
+            if (q.includes('win rate')) return isHinglish ? `📈 Win rate: **${winRate}%**` : `📈 Win rate: **${winRate}%**`;
+            if (q.includes('last trade') || q.includes('pichla')) {
+                if (lastTrade) return isHinglish ? `📅 Aakhri trade: ${lastTrade.date.toLocaleDateString()} – ${lastTrade.asset} ${lastTrade.direction} ${formatMoney(lastTrade.pnl, lastTrade.currency)}` : `📅 Last trade: ${lastTrade.date.toLocaleDateString()} – ${lastTrade.asset} ${lastTrade.direction} ${formatMoney(lastTrade.pnl, lastTrade.currency)}`;
+                else return isHinglish ? `❌ Abhi tak koi trade nahi hui.` : `❌ No trades yet.`;
+            }
+            if (q.includes('what can you do') || q.includes('help')) {
+                return `🤖 Main aapke trades ke baare mein sawaalon ka jawab de sakta hoon, duniya ki khabar bata sakta hoon, aur chart samajh sakta hoon. Jaise: "Kitne trades liye?", "Total profit kya hai?", "Today's market news?", "Yeh chart batao kya signal de raha hai?". (Disclaimer: Only educational)`;
+            }
+            return isHinglish ? "🤔 Samajh nahi aaya. Kuch aur poochhiye?" : "🤔 I didn't understand. Try something else?";
+        }
+
+        // Watchlist
+        async function showWatchlist() {
+            if (!currentUser) { showLogin(); return; }
+            await loadWatchlist();
+            updateWatchlistPrices().then(() => renderWatchlistPage()).catch(() => renderWatchlistPage());
+
+            function renderWatchlistPage() {
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="glass-card fade-in">
+                        <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2 class="mb-0"><i class="bi bi-eye"></i> Watchlist</h2><button class="btn btn-custom ms-auto" onclick="openWatchlistModal()"><i class="bi bi-plus-circle"></i> Add Symbol</button></div>
+                        <table class="watchlist-table"><thead><tr><th>Symbol</th><th>Price & Change</th><th style="text-align:right;">Action</th></tr></thead><tbody id="watchlistTableBody">${renderWatchlistRows()}</tbody></table>
+                    </div>
+                `;
+            }
+        }
+        window.showWatchlist = showWatchlist;
+
+        function renderWatchlistRows() {
+            if (!watchlist.length) return '<tr><td colspan="3" class="text-center text-muted py-4">Your watchlist is empty. Click "Add Symbol" to start.</td></tr>';
+            return watchlist.map(item => {
+                let priceDisplay = '...', changeDisplay = '', changeClass = '';
+                if (item.lastPrice && item.prevClose) {
+                    let change = item.lastPrice - item.prevClose;
+                    let changePercent = (change / item.prevClose) * 100;
+                    let sign = change >= 0 ? '+' : '';
+                    priceDisplay = (item.currency === 'INR' ? '₹' : '$') + item.lastPrice.toLocaleString(item.currency === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2 });
+                    changeDisplay = `${sign}${change.toFixed(2)} (${sign}${changePercent.toFixed(2)}%)`;
+                    changeClass = change >= 0 ? 'text-success' : 'text-danger';
+                } else {
+                    priceDisplay = 'Syncing...';
+                }
+                return `<tr><td><span class="symbol-cell">${item.symbol}</span></td><td><span class="price-cell">${priceDisplay}</span><br><span class="change-cell ${changeClass}">${changeDisplay}</span></td><td style="text-align:right;"><button class="remove-btn" onclick="removeWatchlistItem('${item.symbol}')" title="Remove">×</button></td></tr>`;
+            }).join('');
+        }
+
+        function renderWatchlistTable() {
+            let tbody = document.getElementById('watchlistTableBody');
+            if (tbody) tbody.innerHTML = renderWatchlistRows();
+        }
+        window.renderWatchlistTable = renderWatchlistTable;
+
+        function openWatchlistModal() {
+            document.getElementById('watchlistModal').style.display = 'flex';
+            document.getElementById('watchlistSymbolInput').value = '';
+        }
+        window.openWatchlistModal = openWatchlistModal;
+
+        function closeWatchlistModal() {
+            document.getElementById('watchlistModal').style.display = 'none';
+        }
+        window.closeWatchlistModal = closeWatchlistModal;
+
+        async function addWatchlistItemFromModal() {
+            let input = document.getElementById('watchlistSymbolInput');
+            let symbol = input.value.trim().toUpperCase();
+            if (!symbol) { showAlert('Please enter a symbol', 'warning'); return; }
+            if (watchlist.some(item => item.symbol === symbol)) { showAlert('Symbol already in watchlist', 'warning'); closeWatchlistModal(); return; }
+            let quote = await fetchQuoteDetails(symbol);
+            if (!quote) { showAlert('Could not fetch data for symbol.', 'danger'); return; }
+            await addToWatchlist(symbol);
+            watchlist.push({ symbol, lastPrice: quote.price, prevClose: quote.previousClose, currency: quote.currency });
+            closeWatchlistModal();
+            renderWatchlistTable();
+            showAlert(`${symbol} added`, 'success');
+        }
+        window.addWatchlistItemFromModal = addWatchlistItemFromModal;
+
+        async function removeWatchlistItem(symbol) {
+            await removeFromWatchlist(symbol);
+            watchlist = watchlist.filter(item => item.symbol !== symbol);
+            renderWatchlistTable();
+            showAlert(`${symbol} removed`, 'info');
+        }
+        window.removeWatchlistItem = removeWatchlistItem;
+
+        async function showProfile() {
+            if (!currentUser) { showLogin(); return; }
+            let userData = await getUserProfile(currentUser) || {};
+            trades = trades; // already loaded
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-person-circle"></i> Profile</h2></div>
+                <div class="row"><div class="col-md-6"><p><strong>👤 UID:</strong> ${currentUser}</p><p><strong>📛 Name:</strong> ${userData.name || '-'}</p><p><strong>📧 Email:</strong> ${userData.email || '-'}</p><p><strong>📊 Trades:</strong> ${trades.length}</p><button class="btn btn-danger mt-3" onclick="resetAllTrades()"><i class="bi bi-trash"></i> Clear All Trades</button></div><div class="col-md-6"><canvas id="profileChart" style="max-height:200px;"></canvas></div></div></div>
+            `;
+            let win = trades.filter(t => t.pnl > 0).length, loss = trades.filter(t => t.pnl < 0).length;
+            new Chart(document.getElementById('profileChart'), { type: 'doughnut', data: { labels: ['Wins', 'Losses'], datasets: [{ data: [win, loss], backgroundColor: ['#28a745', '#dc3545'] }] } });
+        }
+        window.showProfile = showProfile;
+
+        // ========== AUTH STATE LISTENER ==========
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user.uid;
+                await loadTrades();
+                await loadWatchlist();
+                await loadMessages();
+                updateNav();
+                if (currentView.name !== showDashboard) {
+                    showDashboard();
+                }
+            } else {
+                currentUser = null;
+                trades = [];
+                watchlist = [];
+                adminMessages = [];
+                updateNav();
+                showLogin();
+            }
+        });
+
+        // ========== DAILY LOSS LIMIT PAGE ==========
+        async function showDailyLossLimit() {
+            if (!currentUser) { showLogin(); return; }
+            let currentLimitUSD = await getDailyLossLimitUSD();
+            let currentDisplay = currency === 'USD' ? currentLimitUSD : currentLimitUSD * (await getExchangeRate());
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in" style="max-width:600px; margin:0 auto;">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-exclamation-octagon"></i> Daily Loss Limit</h2></div>
+                    <p class="text-muted">Set a maximum loss per day (in ${currency}) to receive warnings.</p>
+                    <form onsubmit="setDailyLossLimit(event)">
+                        <div class="mb-3"><label class="form-label">💰 Daily Loss Limit (${currency})</label><input type="number" step="0.01" class="form-control" id="dailyLossLimit" value="${currentDisplay.toFixed(2)}" required></div>
+                        <button type="submit" class="btn btn-custom">Save Limit</button>
+                        <button type="button" class="btn btn-outline-custom" onclick="goBack()">Cancel</button>
+                    </form>
+                </div>
+            `;
+        }
+        window.showDailyLossLimit = showDailyLossLimit;
+
+        async function setDailyLossLimit(e) {
+            e.preventDefault();
+            let input = parseFloat(document.getElementById('dailyLossLimit').value);
+            if (isNaN(input) || input < 0) { showAlert('Enter a valid amount', 'warning'); return; }
+            let rate = await getExchangeRate();
+            let limitUSD = currency === 'USD' ? input : input / rate;
+            await setDailyLossLimitUSD(limitUSD);
+            showAlert('Daily loss limit updated', 'success');
+            goBack();
+        }
+        window.setDailyLossLimit = setDailyLossLimit;
+
+        // ========== EXCHANGE RATE PAGE ==========
+        async function showExchangeRate() {
+            if (!currentUser) { showLogin(); return; }
+            let currentRate = await getExchangeRate();
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in" style="max-width:600px; margin:0 auto;">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-arrow-left-right"></i> Set USD → INR Rate</h2></div>
+                    <p class="text-muted">This rate will be used when converting USD values to INR in the dashboard.</p>
+                    <form onsubmit="updateExchangeRate(event)">
+                        <div class="mb-3"><label class="form-label">💰 1 USD = </label><input type="number" step="0.01" class="form-control" id="exchangeRateInput" value="${currentRate}" required></div>
+                        <button type="submit" class="btn btn-custom">Save Rate</button>
+                        <button type="button" class="btn btn-outline-custom" onclick="goBack()">Cancel</button>
+                    </form>
+                </div>
+            `;
+        }
+        window.showExchangeRate = showExchangeRate;
+
+        async function updateExchangeRate(e) {
+            e.preventDefault();
+            let newRate = parseFloat(document.getElementById('exchangeRateInput').value);
+            if (isNaN(newRate) || newRate <= 0) { showAlert('Please enter a valid positive number', 'warning'); return; }
+            await setExchangeRate(newRate);
+            showAlert('Exchange rate updated', 'success');
+            goBack();
+        }
+        window.updateExchangeRate = updateExchangeRate;
+
+        // ========== INIT ==========
+        setTimeout(() => hideSplash(), 3000);
+        (function init() { updateNav(); })();
+
+        // Expose remaining functions globally (already done above)
+    </script>
+</body>
+</html>
