@@ -378,7 +378,7 @@
             splash.classList.add('fade-out');
             setTimeout(() => {
                 splash.style.display = 'none';
-                showLogin();
+                // No longer call showLogin() here – auth state will handle it
             }, 1200);
         }
 
@@ -1485,9 +1485,10 @@ For any questions regarding these Terms, please contact the administrator at the
         const emotionOptions = ['😊 Confident', '😟 Anxious', '😐 Neutral', '😤 Greedy', '😨 Fearful', '😌 Calm', '😬 Overexcited', '😞 Regret'];
         const setupOptions = ['📅 Day Trade', '🌙 Swing Trade', '📈 Position Trade', '⚡ Scalp', '📊 Momentum', '📉 Breakdown', '📈 Breakout', '⏳ Pre-market'];
 
-        function showAddTrade(tradeId = null) {
+        // FIXED: showAddTrade is now async and properly awaits capital
+        async function showAddTrade(tradeId = null) {
             if (!currentUser) { showLogin(); return; }
-            let capUSD = getCapitalUSD(); // Note: This needs to be awaited if called inside async
+            let capUSD = await getCapitalUSD(); // properly await
             if (capUSD <= 0) {
                 document.getElementById('mainContent').innerHTML = `
                     <div class="glass-card fade-in" style="max-width:600px; margin:0 auto; text-align:center;">
@@ -1499,7 +1500,6 @@ For any questions regarding these Terms, please contact the administrator at the
                 `;
                 return;
             }
-            // We'll handle trade limit inside saveTrade
             let trade = tradeId ? trades.find(t => t.id === tradeId) : null;
             function displayValue(value) { return value?.toFixed(2) ?? ''; }
             function formatDateTimeForInput(date) {
@@ -1551,7 +1551,7 @@ For any questions regarding these Terms, please contact the administrator at the
                                         <div class="col-md-3">Risk Amount: <span class="text-danger" id="riskAmount">${formatLocal(0)}</span></div>
                                         <div class="col-md-3">Risk-Reward: <span class="text-primary" id="riskReward">0.00</span></div>
                                         <div class="col-md-3">Position Value: <span id="positionValue">${formatLocal(0)}</span></div>
-                                        <div class="col-md-3">Total Capital: <span id="totalCapital">${formatLocal(getCapitalDisplay())}</span></div>
+                                        <div class="col-md-3">Total Capital: <span id="totalCapital">${formatLocal(0)}</span></div>
                                     </div>
                                     <div id="riskWarning" class="risk-warning"></div>
                                 </div>
@@ -1590,11 +1590,12 @@ For any questions regarding these Terms, please contact the administrator at the
                     }
                 <\/script>
             `;
-            if (trade) calculateRisk();
+            if (trade) await calculateRisk(); // ensure risk is calculated after DOM update
         }
         window.showAddTrade = showAddTrade;
 
-        function calculateRisk() {
+        // FIXED: calculateRisk is now async and awaits capital
+        async function calculateRisk() {
             let entry = parseFloat(document.getElementById('tradeEntry')?.value) || 0;
             let exit = parseFloat(document.getElementById('tradeExit')?.value) || 0;
             let stop = parseFloat(document.getElementById('tradeStop')?.value) || 0;
@@ -1625,20 +1626,28 @@ For any questions regarding these Terms, please contact the administrator at the
             document.getElementById('riskAmount').innerText = formatLocal(Math.abs(risk));
             document.getElementById('riskReward').innerText = (rr < 0 ? 0 : rr).toFixed(2);
             document.getElementById('positionValue').innerText = formatLocal(positionValue);
-            document.getElementById('totalCapital').innerText = formatLocal(getCapitalDisplay());
 
-            let capUSD = getCapitalUSD();
-            let riskPercent = 2; // We removed risk% setting, using default 2 for calculation
+            // Get current capital asynchronously
+            let capUSD = await getCapitalUSD();
+            let rate = await getExchangeRate();
+            let capDisplay = currency === 'USD' ? capUSD : capUSD * rate;
+            document.getElementById('totalCapital').innerText = formatLocal(capDisplay);
+
+            let riskPercent = 2; // default risk %
             let maxRiskUSD = capUSD * (riskPercent / 100);
-            let riskUSD = risk;
-            if (currency === 'INR') riskUSD = risk / getExchangeRate();
+            let riskUSD = risk; // risk is already in the trade's currency? Actually risk is in trade's currency, but we compare with USD capital
+            // Convert risk to USD if needed
+            if (currency !== 'USD') {
+                riskUSD = risk / rate;
+            }
             let warningDiv = document.getElementById('riskWarning');
             warningDiv.innerHTML = riskUSD > maxRiskUSD ? `⚠️ Risk (${formatMoney(riskUSD, 'USD')}) exceeds ${riskPercent}% of capital (${formatMoney(maxRiskUSD, 'USD')})` : '';
         }
         window.calculateRisk = calculateRisk;
 
         function getCapitalDisplay() {
-            return formatLocal(getCapitalUSD()); // Needs await in async context
+            // This is now only used in initial render, but we'll replace it with async version
+            return '0.00';
         }
 
         async function saveTrade(e, tradeId = null) {
@@ -1665,8 +1674,6 @@ For any questions regarding these Terms, please contact the administrator at the
 
             if (status === 'closed' && !tradeId) incrementUserCount(currentUser, 'trades');
 
-            // For images, we need to upload to Firebase Storage in a real app, but for now we store base64 string (size issue!)
-            // In production, use Firebase Storage and store the URL.
             if (imageInput?.files?.[0]) {
                 let file = imageInput.files[0];
                 let reader = new FileReader();
