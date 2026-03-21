@@ -340,8 +340,7 @@
         // ==================== FIREBASE v10 MODULAR SDK ====================
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import {
-            getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword,
-            createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword,
+            getAuth, signInWithPopup, GoogleAuthProvider,
             onAuthStateChanged, signOut
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
@@ -370,7 +369,7 @@
         let watchlist = [];
         let adminMessages = [];
         let currency = localStorage.getItem('preferred_currency') || 'USD';
-        let termsAccepted = localStorage.getItem('terms_accepted') === 'true'; // Check if terms already accepted
+        let termsAccepted = localStorage.getItem('terms_accepted') === 'true';
 
         // ==================== SPLASH SCREEN ====================
         function hideSplash() {
@@ -378,7 +377,6 @@
             splash.classList.add('fade-out');
             setTimeout(() => {
                 splash.style.display = 'none';
-                // No longer call showLogin() here – auth state will handle it
             }, 1200);
         }
 
@@ -486,7 +484,7 @@
         let currentView = { name: showLogin, params: [] };
         let historyStack = [];
         function navigateTo(f, p) {
-            if (currentView.name && !['showLogin', 'showRegister', 'showForgotPasswordStep1', 'showSupport', 'showAISettings'].includes(currentView.name))
+            if (currentView.name && !['showLogin', 'showSupport', 'showAISettings'].includes(currentView.name))
                 historyStack.push({ name: currentView.name, params: currentView.params });
             currentView = { name: f, params: p };
             f(...p);
@@ -548,7 +546,6 @@
                     if (type === 'ai_questions') return data.aiLimit || 5;
                 }
             } catch (e) { console.error("Error getting limit", e); }
-            // Defaults
             if (type === 'trades') return 5;
             if (type === 'images') return 1;
             if (type === 'ai_questions') return 5;
@@ -562,7 +559,6 @@
             } catch { return true; }
         }
         function incrementUserCount(username, type) {
-            // Will be handled by backend/cloud function ideally. For now, we use localStorage as temporary.
             let today = new Date().toISOString().slice(0, 10);
             let key = `count_${type}_${username}_${today}`;
             let val = localStorage.getItem(key);
@@ -649,7 +645,7 @@
                 message: message,
                 timestamp: new Date().toISOString(),
                 read: false,
-                to: 'admin' // Special flag for admin
+                to: 'admin'
             });
         }
 
@@ -819,8 +815,6 @@
                 `;
             } else {
                 nav.innerHTML = `
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="showLogin();return false;"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="showRegister();return false;"><i class="bi bi-person-plus"></i> Register</a></li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-currency-exchange"></i> ${currency}</a>
                         <ul class="dropdown-menu dropdown-menu-end" style="background:var(--card-bg); border:1px solid var(--link-color);">
@@ -876,130 +870,24 @@ For any questions regarding these Terms, please contact the administrator at the
             currentView = { name: showLogin, params: [] };
             document.getElementById('mainContent').innerHTML = `
                 <div class="auth-card fade-in">
-                    <h2><i class="bi bi-box-arrow-in-right"></i> Login</h2>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="acceptTerms" ${termsAccepted ? 'checked disabled' : ''}>
-                        <label class="form-check-label" for="acceptTerms">I accept the <a href="#" onclick="showTerms();return false;">Terms & Conditions</a></label>
+                    <h2><i class="bi bi-google"></i> Sign in with Google</h2>
+                    <p class="text-muted mb-4">Access your trading journal securely using your Google account</p>
+                    <button onclick="googleLogin()" class="btn btn-outline-custom w-100 py-3" style="font-size:1.1rem;">
+                        <i class="bi bi-google"></i> Continue with Google
+                    </button>
+                    <div class="text-center mt-4">
+                        <a href="#" onclick="showTerms();return false;" class="bright-link small">Terms & Conditions</a>
                     </div>
-                    <form onsubmit="handleLogin(event)">
-                        <div class="mb-3"><label class="form-label">📧 Email</label><input type="email" class="form-control" id="loginEmail" required></div>
-                        <div class="mb-3"><label class="form-label">🔑 Password</label><input type="password" class="form-control" id="loginPassword" required></div>
-                        <button type="submit" class="btn btn-custom w-100 mb-3" ${!termsAccepted ? 'disabled' : ''} id="loginSubmitBtn">Login</button>
-                        <p class="text-center mb-0">New? <a href="#" onclick="showRegister();return false;" class="bright-link">Register</a></p>
-                        <p class="text-center"><a href="#" onclick="showForgotPasswordStep1();return false;" class="bright-link">Forgot Password?</a></p>
-                    </form>
-                    <hr style="border-color:var(--link-color);">
-                    <button onclick="googleLogin()" class="btn btn-outline-custom w-100" ${!termsAccepted ? 'disabled' : ''} id="googleLoginBtn"><i class="bi bi-google"></i> Sign in with Google</button>
                 </div>
-                <script>
-                    document.getElementById('acceptTerms').addEventListener('change', function(e) {
-                        const checked = e.target.checked;
-                        document.getElementById('loginSubmitBtn').disabled = !checked;
-                        document.getElementById('googleLoginBtn').disabled = !checked;
-                        if(checked) localStorage.setItem('terms_accepted', 'true');
-                    });
-                <\/script>
             `;
-            // Re-attach event listener after innerHTML
-            setTimeout(() => {
-                document.getElementById('acceptTerms')?.addEventListener('change', function(e) {
-                    const checked = e.target.checked;
-                    document.getElementById('loginSubmitBtn').disabled = !checked;
-                    document.getElementById('googleLoginBtn').disabled = !checked;
-                    if (checked) localStorage.setItem('terms_accepted', 'true');
-                });
-            }, 100);
         }
         window.showLogin = showLogin;
-
-        async function handleLogin(e) {
-            e.preventDefault();
-            let email = document.getElementById('loginEmail').value;
-            let password = document.getElementById('loginPassword').value;
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                currentUser = user.uid;
-                await saveUserProfile(user.uid, { name: user.displayName || email.split('@')[0], email: user.email });
-                console.log('User Name:', user.displayName);
-                console.log('User Email:', user.email);
-                await loadTrades();
-                await loadWatchlist();
-                await loadMessages();
-                updateNav();
-                clearHistory();
-                showDashboard();
-                updateLastActive();
-                showAlert('Welcome!', 'success');
-            } catch (error) {
-                showAlert(error.message, 'danger');
-            }
-        }
-        window.handleLogin = handleLogin;
-
-        function showRegister() {
-            currentView = { name: showRegister, params: [] };
-            document.getElementById('mainContent').innerHTML = `
-                <div class="auth-card fade-in">
-                    <h2><i class="bi bi-person-plus"></i> Register</h2>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="acceptTermsReg" ${termsAccepted ? 'checked disabled' : ''}>
-                        <label class="form-check-label" for="acceptTermsReg">I accept the <a href="#" onclick="showTerms();return false;">Terms & Conditions</a></label>
-                    </div>
-                    <form onsubmit="handleRegister(event)">
-                        <div class="mb-3"><label class="form-label">👤 Full Name</label><input type="text" class="form-control" id="regName" required></div>
-                        <div class="mb-3"><label class="form-label">📧 Email</label><input type="email" class="form-control" id="regEmail" required></div>
-                        <div class="mb-3"><label class="form-label">🔐 Password (min 6)</label><input type="password" class="form-control" id="regPassword" required minlength="6"></div>
-                        <div class="mb-3"><label class="form-label">✅ Confirm Password</label><input type="password" class="form-control" id="regConfirmPassword" required></div>
-                        <button type="submit" class="btn btn-custom w-100 mb-3" id="registerSubmitBtn" ${!termsAccepted ? 'disabled' : ''}>Register</button>
-                        <p class="text-center mb-0">Have account? <a href="#" onclick="showLogin();return false;" class="bright-link">Login</a></p>
-                    </form>
-                </div>
-                <script>
-                    document.getElementById('acceptTermsReg').addEventListener('change', function(e) {
-                        const checked = e.target.checked;
-                        document.getElementById('registerSubmitBtn').disabled = !checked;
-                        if(checked) localStorage.setItem('terms_accepted', 'true');
-                    });
-                <\/script>
-            `;
-            setTimeout(() => {
-                document.getElementById('acceptTermsReg')?.addEventListener('change', function(e) {
-                    const checked = e.target.checked;
-                    document.getElementById('registerSubmitBtn').disabled = !checked;
-                    if (checked) localStorage.setItem('terms_accepted', 'true');
-                });
-            }, 100);
-        }
-        window.showRegister = showRegister;
-
-        async function handleRegister(e) {
-            e.preventDefault();
-            let name = document.getElementById('regName').value;
-            let email = document.getElementById('regEmail').value;
-            let password = document.getElementById('regPassword').value;
-            let confirm = document.getElementById('regConfirmPassword').value;
-            if (password !== confirm) { showAlert('Passwords do not match', 'danger'); return; }
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                await user.updateProfile({ displayName: name });
-                await saveUserProfile(user.uid, { name: name, email: email, registered: new Date().toISOString() });
-                showAlert('Registration successful! Please login.', 'success');
-                showLogin();
-            } catch (error) {
-                showAlert(error.message, 'danger');
-            }
-        }
-        window.handleRegister = handleRegister;
 
         async function googleLogin() {
             try {
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
                 await saveUserProfile(user.uid, { name: user.displayName || 'Google User', email: user.email });
-                console.log('User Name:', user.displayName);
-                console.log('User Email:', user.email);
                 currentUser = user.uid;
                 await loadTrades();
                 await loadWatchlist();
@@ -1014,32 +902,6 @@ For any questions regarding these Terms, please contact the administrator at the
             }
         }
         window.googleLogin = googleLogin;
-
-        function showForgotPasswordStep1() {
-            currentView = { name: showForgotPasswordStep1, params: [] };
-            document.getElementById('mainContent').innerHTML = `
-                <div class="auth-card fade-in">
-                    <h2><i class="bi bi-key"></i> Reset Password</h2>
-                    <form onsubmit="sendPasswordReset(event)">
-                        <div class="mb-3"><label class="form-label">📧 Email</label><input type="email" class="form-control" id="resetEmail" required></div>
-                        <button type="submit" class="btn btn-custom w-100">Send Reset Email</button>
-                        <p class="text-center mt-2"><a href="#" onclick="showLogin();return false;" class="bright-link">Back to Login</a></p>
-                    </form>
-                </div>`;
-        }
-        window.showForgotPasswordStep1 = showForgotPasswordStep1;
-
-        function sendPasswordReset(e) {
-            e.preventDefault();
-            let email = document.getElementById('resetEmail').value;
-            sendPasswordResetEmail(auth, email)
-                .then(() => {
-                    showAlert('Password reset email sent! Check your inbox.', 'success');
-                    showLogin();
-                })
-                .catch((error) => showAlert(error.message, 'danger'));
-        }
-        window.sendPasswordReset = sendPasswordReset;
 
         async function logout() {
             await signOut(auth);
@@ -1056,34 +918,18 @@ For any questions regarding these Terms, please contact the administrator at the
 
         async function showChangePassword() {
             if (!currentUser) { showLogin(); return; }
+            // We'll keep the change password option, but it only works if user already has a password set.
+            // Since we are only using Google Sign-In, we can either remove this or keep it.
+            // For simplicity, we'll keep it but inform user.
             document.getElementById('mainContent').innerHTML = `
                 <div class="glass-card fade-in" style="max-width:600px; margin:0 auto;">
                     <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-lock"></i> Change Password</h2></div>
-                    <form onsubmit="changePassword(event)">
-                        <div class="mb-3"><label class="form-label">🔐 New Password (min 6)</label><input type="password" class="form-control" id="newPass1" required minlength="6"></div>
-                        <div class="mb-3"><label class="form-label">✅ Confirm New</label><input type="password" class="form-control" id="newPass2" required minlength="6"></div>
-                        <button type="submit" class="btn btn-custom">Update Password</button>
-                    </form>
+                    <div class="alert alert-info">You are signed in with Google. To set a password, use the "Set password" option in Firebase Console or contact admin.</div>
+                    <button class="btn btn-outline-custom mt-3" onclick="goBack()">Go Back</button>
                 </div>
             `;
         }
         window.showChangePassword = showChangePassword;
-
-        async function changePassword(e) {
-            e.preventDefault();
-            let new1 = document.getElementById('newPass1').value;
-            let new2 = document.getElementById('newPass2').value;
-            if (new1 !== new2) { showAlert('New passwords do not match', 'danger'); return; }
-            if (new1.length < 6) { showAlert('Minimum 6 chars', 'warning'); return; }
-            try {
-                await updatePassword(auth.currentUser, new1);
-                showAlert('Password changed successfully', 'success');
-                goBack();
-            } catch (error) {
-                showAlert(error.message, 'danger');
-            }
-        }
-        window.changePassword = changePassword;
 
         // ========== RESET ALL TRADES ==========
         async function resetAllTrades() {
@@ -1321,7 +1167,6 @@ For any questions regarding these Terms, please contact the administrator at the
 
         function showTrades() {
             if (!currentUser) { showLogin(); return; }
-            trades = trades; // already loaded
             let openCount = trades.filter(t => t.status === 'open').length;
             let filtered = [...trades].sort((a, b) => b.date - a.date);
             document.getElementById('mainContent').innerHTML = `
@@ -1467,7 +1312,6 @@ For any questions regarding these Terms, please contact the administrator at the
             }).join('');
         }
 
-        // Image modal functions
         function openImageModal(src) {
             document.getElementById('modalImage').src = src;
             document.getElementById('imageModal').style.display = 'flex';
@@ -1479,16 +1323,14 @@ For any questions regarding these Terms, please contact the administrator at the
         }
         window.closeImageModal = closeImageModal;
 
-        // Strategy options etc.
         const strategyOptions = ['📊 Breakout', '📈 Trend Following', '🔄 Reversal', '📉 Scalping', '🏦 Swing', '⚡ Momentum', '📐 Range Trading', '📅 News Based'];
         const behaviorOptions = ['😎 Disciplined', '😬 FOMO', '😡 Revenge', '😌 Patient', '😰 Nervous', '😤 Greedy', '😨 Fearful', '😐 Neutral'];
         const emotionOptions = ['😊 Confident', '😟 Anxious', '😐 Neutral', '😤 Greedy', '😨 Fearful', '😌 Calm', '😬 Overexcited', '😞 Regret'];
         const setupOptions = ['📅 Day Trade', '🌙 Swing Trade', '📈 Position Trade', '⚡ Scalp', '📊 Momentum', '📉 Breakdown', '📈 Breakout', '⏳ Pre-market'];
 
-        // FIXED: showAddTrade is now async and properly awaits capital
         async function showAddTrade(tradeId = null) {
             if (!currentUser) { showLogin(); return; }
-            let capUSD = await getCapitalUSD(); // properly await
+            let capUSD = await getCapitalUSD();
             if (capUSD <= 0) {
                 document.getElementById('mainContent').innerHTML = `
                     <div class="glass-card fade-in" style="max-width:600px; margin:0 auto; text-align:center;">
@@ -1590,11 +1432,10 @@ For any questions regarding these Terms, please contact the administrator at the
                     }
                 <\/script>
             `;
-            if (trade) await calculateRisk(); // ensure risk is calculated after DOM update
+            if (trade) await calculateRisk();
         }
         window.showAddTrade = showAddTrade;
 
-        // FIXED: calculateRisk is now async and awaits capital
         async function calculateRisk() {
             let entry = parseFloat(document.getElementById('tradeEntry')?.value) || 0;
             let exit = parseFloat(document.getElementById('tradeExit')?.value) || 0;
@@ -1627,16 +1468,14 @@ For any questions regarding these Terms, please contact the administrator at the
             document.getElementById('riskReward').innerText = (rr < 0 ? 0 : rr).toFixed(2);
             document.getElementById('positionValue').innerText = formatLocal(positionValue);
 
-            // Get current capital asynchronously
             let capUSD = await getCapitalUSD();
             let rate = await getExchangeRate();
             let capDisplay = currency === 'USD' ? capUSD : capUSD * rate;
             document.getElementById('totalCapital').innerText = formatLocal(capDisplay);
 
-            let riskPercent = 2; // default risk %
+            let riskPercent = 2;
             let maxRiskUSD = capUSD * (riskPercent / 100);
-            let riskUSD = risk; // risk is already in the trade's currency? Actually risk is in trade's currency, but we compare with USD capital
-            // Convert risk to USD if needed
+            let riskUSD = risk;
             if (currency !== 'USD') {
                 riskUSD = risk / rate;
             }
@@ -1644,11 +1483,6 @@ For any questions regarding these Terms, please contact the administrator at the
             warningDiv.innerHTML = riskUSD > maxRiskUSD ? `⚠️ Risk (${formatMoney(riskUSD, 'USD')}) exceeds ${riskPercent}% of capital (${formatMoney(maxRiskUSD, 'USD')})` : '';
         }
         window.calculateRisk = calculateRisk;
-
-        function getCapitalDisplay() {
-            // This is now only used in initial render, but we'll replace it with async version
-            return '0.00';
-        }
 
         async function saveTrade(e, tradeId = null) {
             e.preventDefault();
@@ -1756,7 +1590,6 @@ For any questions regarding these Terms, please contact the administrator at the
 
         function showCalendar() {
             if (!currentUser) { showLogin(); return; }
-            trades = trades; // already loaded
             document.getElementById('mainContent').innerHTML = `<div class="glass-card fade-in"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-calendar"></i> Calendar</h2></div><div id="calendar"></div></div>`;
             setTimeout(() => {
                 new FullCalendar.Calendar(document.getElementById('calendar'), {
@@ -1770,7 +1603,6 @@ For any questions regarding these Terms, please contact the administrator at the
 
         function showMistakes() {
             if (!currentUser) { showLogin(); return; }
-            trades = trades; // already loaded
             let mistakes = trades.filter(t => t.pnl < 0 || !t.stop || /fomo|revenge|greed|mistake/i.test(t.behavior || '') || /greed/i.test(t.emotion || '') || /mistake/i.test(t.notes || ''));
             document.getElementById('mainContent').innerHTML = `<div class="glass-card fade-in"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-exclamation-triangle"></i> Mistake Gallery</h2></div><p class="text-muted mb-4">Trades with potential mistakes or losses.</p><div class="row g-4">${renderMistakeCards(mistakes)}</div></div>`;
         }
@@ -2003,7 +1835,7 @@ For any questions regarding these Terms, please contact the administrator at the
         }
         window.showInbox = showInbox;
 
-        // AI Chat
+        // AI Chat (unchanged except we removed register/login email form)
         let chatMessages = [], suggestOpen = false, currentImageData = null, welcomeTimeout = null, thinkingId = null;
         async function showAIChat() {
             if (!currentUser) { showLogin(); return; }
@@ -2232,7 +2064,7 @@ Current journal data:
                 document.getElementById('mainContent').innerHTML = `
                     <div class="glass-card fade-in">
                         <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2 class="mb-0"><i class="bi bi-eye"></i> Watchlist</h2><button class="btn btn-custom ms-auto" onclick="openWatchlistModal()"><i class="bi bi-plus-circle"></i> Add Symbol</button></div>
-                        <table class="watchlist-table"><thead><tr><th>Symbol</th><th>Price & Change</th><th style="text-align:right;">Action</th></tr></thead><tbody id="watchlistTableBody">${renderWatchlistRows()}</tbody></table>
+                        <table class="watchlist-table"><thead>汽<th>Symbol</th><th>Price & Change</th><th style="text-align:right;">Action</th> </thead><tbody id="watchlistTableBody">${renderWatchlistRows()}</tbody> </table>
                     </div>
                 `;
             }
@@ -2300,7 +2132,6 @@ Current journal data:
         async function showProfile() {
             if (!currentUser) { showLogin(); return; }
             let userData = await getUserProfile(currentUser) || {};
-            trades = trades; // already loaded
             document.getElementById('mainContent').innerHTML = `
                 <div class="glass-card fade-in"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-person-circle"></i> Profile</h2></div>
                 <div class="row"><div class="col-md-6"><p><strong>👤 UID:</strong> ${currentUser}</p><p><strong>📛 Name:</strong> ${userData.name || '-'}</p><p><strong>📧 Email:</strong> ${userData.email || '-'}</p><p><strong>📊 Trades:</strong> ${trades.length}</p><button class="btn btn-danger mt-3" onclick="resetAllTrades()"><i class="bi bi-trash"></i> Clear All Trades</button></div><div class="col-md-6"><canvas id="profileChart" style="max-height:200px;"></canvas></div></div></div>
@@ -2393,8 +2224,6 @@ Current journal data:
         // ========== INIT ==========
         setTimeout(() => hideSplash(), 3000);
         (function init() { updateNav(); })();
-
-        // Expose remaining functions globally (already done above)
     </script>
 </body>
 </html>
