@@ -9,11 +9,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet">
-    <!-- PDF generation libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* ========== PAHLE JAISE HI STYLES RAHENGE ========== */
+        /* ========== PAHLE JAISE HI STYLES ========== */
         :root {
             --bg-gradient: linear-gradient(145deg, #0f0c1f, #1b1b3a, #2a1e3a);
             --text-primary: #f0f4ff;
@@ -156,7 +155,7 @@
         .remove-btn { background: transparent; border: none; color: var(--muted-text); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 5px; }
         .remove-btn:hover { color: var(--down); }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--link-color); border-radius: 32px; padding: 28px; width: 90%; max-width: 400px; color: var(--text-primary); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--link-color); border-radius: 32px; padding: 28px; width: 90%; max-width: 450px; color: var(--text-primary); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
         .modal-content h3 { margin-top: 0; color: var(--text-primary); }
         .guide-box { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; margin: 20px 0; font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); border: 1px solid var(--card-border); }
         .guide-box b { color: var(--link-color); }
@@ -257,6 +256,32 @@
         .terms-link:hover {
             color: var(--link-color);
         }
+        /* Email login modal styles */
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+        }
+        .auth-tab.active {
+            color: var(--link-color);
+            border-bottom-color: var(--link-color);
+        }
+        .auth-form {
+            display: none;
+        }
+        .auth-form.active {
+            display: block;
+        }
     </style>
 </head>
 <body class="dark-mode">
@@ -305,6 +330,55 @@
         </div>
     </div>
 
+    <!-- Email/Password Login Modal -->
+    <div class="modal-overlay" id="emailLoginModal" onclick="closeEmailLoginModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3><i class="bi bi-envelope"></i> Sign in with Email</h3>
+            <div class="auth-tabs">
+                <div class="auth-tab active" data-tab="login">Login</div>
+                <div class="auth-tab" data-tab="register">Register</div>
+            </div>
+            <div id="emailLoginForm" class="auth-form active">
+                <form onsubmit="handleEmailLogin(event)">
+                    <div class="mb-3">
+                        <label class="form-label">📧 Email</label>
+                        <input type="email" class="form-control" id="modalLoginEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">🔑 Password</label>
+                        <input type="password" class="form-control" id="modalLoginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-custom w-100">Login</button>
+                </form>
+            </div>
+            <div id="emailRegisterForm" class="auth-form">
+                <form onsubmit="handleEmailRegister(event)">
+                    <div class="mb-3">
+                        <label class="form-label">👤 Full Name</label>
+                        <input type="text" class="form-control" id="modalRegName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">📧 Email</label>
+                        <input type="email" class="form-control" id="modalRegEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">🔐 Password (min 6)</label>
+                        <input type="password" class="form-control" id="modalRegPassword" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">✅ Confirm Password</label>
+                        <input type="password" class="form-control" id="modalRegConfirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-custom w-100">Register</button>
+                </form>
+            </div>
+            <div class="hint-text mt-3">
+                <a href="#" onclick="showTerms();return false;" class="bright-link">Terms & Conditions</a>
+            </div>
+            <a class="cancel-link" onclick="closeEmailLoginModal()">Cancel</a>
+        </div>
+    </div>
+
     <div class="navbar-double">
         <div class="top-row">
             <div class="container d-flex justify-content-between align-items-center">
@@ -340,12 +414,12 @@
         // ==================== FIREBASE v10 MODULAR SDK ====================
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import {
-            getAuth, signInWithPopup, GoogleAuthProvider,
-            onAuthStateChanged, signOut
+            getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword,
+            createUserWithEmailAndPassword, updatePassword, onAuthStateChanged, signOut
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             getFirestore, collection, addDoc, getDocs, query, where,
-            deleteDoc, doc, updateDoc, setDoc, getDoc
+            deleteDoc, doc, updateDoc, setDoc, getDoc, orderBy
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         const firebaseConfig = {
@@ -622,7 +696,8 @@
         async function loadMessages() {
             if (!currentUser) return [];
             try {
-                const q = query(collection(db, 'messages'), where('to', '==', currentUser));
+                // Query messages where 'to' is current user, order by timestamp descending
+                const q = query(collection(db, 'messages'), where('to', '==', currentUser), orderBy('timestamp', 'desc'));
                 const querySnapshot = await getDocs(q);
                 adminMessages = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 return adminMessages;
@@ -636,6 +711,8 @@
             await updateDoc(doc(db, 'messages', id), { read: true });
             await loadMessages();
             if (currentView.name === showInbox) showInbox();
+            // Update inbox badge in nav
+            updateNav();
         }
 
         async function saveSupportMessage(name, message) {
@@ -799,7 +876,6 @@
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> ${displayName}</a>
                         <ul class="dropdown-menu dropdown-menu-end" style="background:var(--card-bg); border:1px solid var(--link-color);">
                             <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showProfile,[]);return false;"><i class="bi bi-gear"></i> Profile</a></li>
-                            <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showChangePassword,[]);return false;"><i class="bi bi-lock"></i> Change Password</a></li>
                             <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showDailyLossLimit,[]);return false;"><i class="bi bi-exclamation-octagon"></i> Daily Loss Limit</a></li>
                             <li><a class="dropdown-item text-primary" href="#" onclick="navigateTo(showExchangeRate,[]);return false;"><i class="bi bi-arrow-left-right"></i> Set USD→INR Rate</a></li>
                             <li><hr class="dropdown-divider" style="border-color:var(--link-color);"></li>
@@ -870,10 +946,14 @@ For any questions regarding these Terms, please contact the administrator at the
             currentView = { name: showLogin, params: [] };
             document.getElementById('mainContent').innerHTML = `
                 <div class="auth-card fade-in">
-                    <h2><i class="bi bi-google"></i> Sign in with Google</h2>
-                    <p class="text-muted mb-4">Access your trading journal securely using your Google account</p>
-                    <button onclick="googleLogin()" class="btn btn-outline-custom w-100 py-3" style="font-size:1.1rem;">
-                        <i class="bi bi-google"></i> Continue with Google
+                    <h2><i class="bi bi-box-arrow-in-right"></i> Welcome</h2>
+                    <p class="text-muted mb-4">Sign in to access your trading journal</p>
+                    <button onclick="googleLogin()" class="btn btn-outline-custom w-100 py-3 mb-3" style="font-size:1.1rem;">
+                        <i class="bi bi-google"></i> Sign in with Google
+                    </button>
+                    <div class="text-center my-2">or</div>
+                    <button onclick="openEmailLoginModal()" class="btn btn-outline-custom w-100 py-3" style="font-size:1.1rem;">
+                        <i class="bi bi-envelope"></i> Sign in with Email
                     </button>
                     <div class="text-center mt-4">
                         <a href="#" onclick="showTerms();return false;" class="bright-link small">Terms & Conditions</a>
@@ -882,6 +962,89 @@ For any questions regarding these Terms, please contact the administrator at the
             `;
         }
         window.showLogin = showLogin;
+
+        // Email login modal functions
+        window.openEmailLoginModal = function() {
+            document.getElementById('emailLoginModal').style.display = 'flex';
+            // Reset forms to default (login tab active)
+            document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+            document.querySelector('.auth-tab[data-tab="login"]').classList.add('active');
+            document.getElementById('emailLoginForm').classList.add('active');
+        };
+
+        window.closeEmailLoginModal = function(e) {
+            if (e && e.target.classList.contains('modal-overlay')) {
+                document.getElementById('emailLoginModal').style.display = 'none';
+            } else if (!e) {
+                document.getElementById('emailLoginModal').style.display = 'none';
+            }
+        };
+
+        // Switch tabs in modal
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetTab = this.getAttribute('data-tab');
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+                if (targetTab === 'login') {
+                    document.getElementById('emailLoginForm').classList.add('active');
+                } else {
+                    document.getElementById('emailRegisterForm').classList.add('active');
+                }
+            });
+        });
+
+        window.handleEmailLogin = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('modalLoginEmail').value;
+            const password = document.getElementById('modalLoginPassword').value;
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                currentUser = user.uid;
+                await saveUserProfile(user.uid, { name: user.displayName || email.split('@')[0], email: user.email });
+                await loadTrades();
+                await loadWatchlist();
+                await loadMessages();
+                updateNav();
+                clearHistory();
+                showDashboard();
+                updateLastActive();
+                showAlert('Welcome!', 'success');
+                closeEmailLoginModal();
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        };
+
+        window.handleEmailRegister = async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('modalRegName').value;
+            const email = document.getElementById('modalRegEmail').value;
+            const password = document.getElementById('modalRegPassword').value;
+            const confirm = document.getElementById('modalRegConfirmPassword').value;
+            if (password !== confirm) { showAlert('Passwords do not match', 'danger'); return; }
+            if (password.length < 6) { showAlert('Password must be at least 6 characters', 'danger'); return; }
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                await user.updateProfile({ displayName: name });
+                await saveUserProfile(user.uid, { name: name, email: email, registered: new Date().toISOString() });
+                showAlert('Registration successful! You are now logged in.', 'success');
+                await loadTrades();
+                await loadWatchlist();
+                await loadMessages();
+                updateNav();
+                clearHistory();
+                showDashboard();
+                updateLastActive();
+                closeEmailLoginModal();
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        };
 
         async function googleLogin() {
             try {
@@ -915,21 +1078,6 @@ For any questions regarding these Terms, please contact the administrator at the
             showAlert('Logged out', 'info');
         }
         window.logout = logout;
-
-        async function showChangePassword() {
-            if (!currentUser) { showLogin(); return; }
-            // We'll keep the change password option, but it only works if user already has a password set.
-            // Since we are only using Google Sign-In, we can either remove this or keep it.
-            // For simplicity, we'll keep it but inform user.
-            document.getElementById('mainContent').innerHTML = `
-                <div class="glass-card fade-in" style="max-width:600px; margin:0 auto;">
-                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-lock"></i> Change Password</h2></div>
-                    <div class="alert alert-info">You are signed in with Google. To set a password, use the "Set password" option in Firebase Console or contact admin.</div>
-                    <button class="btn btn-outline-custom mt-3" onclick="goBack()">Go Back</button>
-                </div>
-            `;
-        }
-        window.showChangePassword = showChangePassword;
 
         // ========== RESET ALL TRADES ==========
         async function resetAllTrades() {
@@ -1819,7 +1967,7 @@ For any questions regarding these Terms, please contact the administrator at the
 
         async function showInbox() {
             if (!currentUser) { showLogin(); return; }
-            await loadMessages();
+            await loadMessages(); // already sorted by timestamp desc
             let messages = adminMessages.filter(m => m.to === currentUser);
             document.getElementById('mainContent').innerHTML = `
                 <div class="glass-card fade-in">
@@ -1835,7 +1983,7 @@ For any questions regarding these Terms, please contact the administrator at the
         }
         window.showInbox = showInbox;
 
-        // AI Chat (unchanged except we removed register/login email form)
+        // AI Chat (unchanged)
         let chatMessages = [], suggestOpen = false, currentImageData = null, welcomeTimeout = null, thinkingId = null;
         async function showAIChat() {
             if (!currentUser) { showLogin(); return; }
@@ -2064,7 +2212,7 @@ Current journal data:
                 document.getElementById('mainContent').innerHTML = `
                     <div class="glass-card fade-in">
                         <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2 class="mb-0"><i class="bi bi-eye"></i> Watchlist</h2><button class="btn btn-custom ms-auto" onclick="openWatchlistModal()"><i class="bi bi-plus-circle"></i> Add Symbol</button></div>
-                        <table class="watchlist-table"><thead>汽<th>Symbol</th><th>Price & Change</th><th style="text-align:right;">Action</th> </thead><tbody id="watchlistTableBody">${renderWatchlistRows()}</tbody> </table>
+                        <table class="watchlist-table"><thead><tr><th>Symbol</th><th>Price & Change</th><th style="text-align:right;">Action</th></tr></thead><tbody id="watchlistTableBody">${renderWatchlistRows()}</tbody></table>
                     </div>
                 `;
             }
