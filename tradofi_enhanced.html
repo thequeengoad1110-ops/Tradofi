@@ -1,0 +1,2814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradofi · Trading Journal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #070b14;
+            --bg-secondary: #0d1525;
+            --bg-card: rgba(13, 21, 37, 0.75);
+            --bg-card-hover: rgba(20, 32, 56, 0.9);
+            --border-subtle: rgba(99, 210, 255, 0.1);
+            --border-accent: rgba(99, 210, 255, 0.35);
+            --text-primary: #e8f0fe;
+            --text-secondary: #8ba0c4;
+            --text-muted: #4e6080;
+            --label-color: #e8f0fe;
+            --placeholder-color: #4e6080;
+            --accent-cyan: #38d9f5;
+            --accent-violet: #9d5cff;
+            --accent-green: #22c988;
+            --accent-red: #f55252;
+            --accent-amber: #f0b429;
+            --input-bg: rgba(7, 11, 20, 0.6);
+            --input-border: rgba(99, 210, 255, 0.2);
+            --link-color: #38d9f5;
+            --muted-text: #4e6080;
+            --icon-color: #38d9f5;
+            --btn-gradient: linear-gradient(135deg, #38d9f5 0%, #9d5cff 100%);
+            --up: #22c988;
+            --down: #f55252;
+            --nse-color: #f0b429;
+            --tv-color: #38d9f5;
+            --glow-cyan: 0 0 30px rgba(56, 217, 245, 0.25);
+            --glow-violet: 0 0 30px rgba(157, 92, 255, 0.25);
+            --shadow-card: 0 24px 64px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        body.light-mode {
+            --bg-primary: #f0f4f8;
+            --bg-secondary: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --bg-card-hover: rgba(248, 250, 255, 0.98);
+            --border-subtle: rgba(37, 99, 235, 0.08);
+            --border-accent: rgba(37, 99, 235, 0.25);
+            --text-primary: #1a2744;
+            --text-secondary: #3d5280;
+            --text-muted: #8a9fc0;
+            --label-color: #1a2744;
+            --placeholder-color: #8a9fc0;
+            --accent-cyan: #2563eb;
+            --accent-violet: #7c3aed;
+            --accent-green: #059669;
+            --accent-red: #dc2626;
+            --input-bg: rgba(255, 255, 255, 0.95);
+            --input-border: rgba(37, 99, 235, 0.2);
+            --link-color: #2563eb;
+            --muted-text: #6b7a99;
+            --icon-color: #2563eb;
+            --btn-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            --up: #059669;
+            --down: #dc2626;
+            --nse-color: #d97706;
+            --shadow-card: 0 24px 64px -12px rgba(0, 0, 0, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding-top: 128px;
+            transition: background 0.4s ease, color 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse 80% 40% at 20% 10%, rgba(56, 217, 245, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(157, 92, 255, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body.light-mode::before {
+            background:
+                radial-gradient(ellipse 80% 40% at 20% 10%, rgba(37, 99, 235, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(124, 58, 237, 0.03) 0%, transparent 60%);
+        }
+
+        #bgCanvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; pointer-events: none;
+        }
+
+        /* ===== SPLASH SCREEN ===== */
+        #splashScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #040711;
+            z-index: 99999;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s ease;
+            overflow: hidden;
+        }
+        #splashScreen.fade-out {
+            opacity: 0;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
+
+        /* Splash grid lines */
+        #splashScreen::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(56, 217, 245, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56, 217, 245, 0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridPan 20s linear infinite;
+        }
+
+        @keyframes gridPan {
+            0% { transform: perspective(500px) rotateX(0deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(0deg) translateY(60px); }
+        }
+
+        /* Splash glow orbs */
+        #splashScreen::after {
+            content: '';
+            position: absolute;
+            width: 600px; height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 217, 245, 0.12) 0%, rgba(157, 92, 255, 0.08) 50%, transparent 70%);
+            animation: orbPulse 4s ease-in-out infinite;
+        }
+        @keyframes orbPulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 1; }
+        }
+
+        .splash-content {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            padding: 40px;
+        }
+
+        .splash-logo-icon {
+            font-size: 5rem;
+            background: linear-gradient(135deg, #38d9f5, #9d5cff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: block;
+            margin-bottom: 32px;
+            animation: iconDrop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+            transform: translateY(-30px) scale(0.8);
+            filter: drop-shadow(0 0 40px rgba(56, 217, 245, 0.5));
+        }
+        @keyframes iconDrop {
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .splash-brand {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(3.5rem, 8vw, 6rem);
+            letter-spacing: -2px;
+            line-height: 1;
+            background: linear-gradient(135deg, #ffffff 0%, #38d9f5 50%, #9d5cff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: brandReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+            opacity: 0;
+            transform: translateY(20px);
+            display: block;
+        }
+        @keyframes brandReveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .splash-tagline {
+            font-family: 'DM Sans', sans-serif;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            font-weight: 400;
+            color: rgba(139, 160, 196, 0.9);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-top: 20px;
+            animation: taglineIn 0.8s ease 0.9s forwards;
+            opacity: 0;
+            transform: translateY(10px);
+            display: block;
+        }
+        @keyframes taglineIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .splash-divider {
+            width: 80px; height: 2px;
+            background: linear-gradient(90deg, transparent, #38d9f5, #9d5cff, transparent);
+            margin: 20px auto;
+            animation: dividerIn 0.6s ease 1.2s forwards;
+            opacity: 0;
+            transform: scaleX(0);
+        }
+        @keyframes dividerIn {
+            to { opacity: 1; transform: scaleX(1); }
+        }
+
+        .splash-subtitle {
+            font-size: 0.85rem;
+            color: rgba(56, 217, 245, 0.7);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            animation: taglineIn 0.6s ease 1.4s forwards;
+            opacity: 0;
+        }
+
+        /* Splash loading bar */
+        .splash-progress {
+            width: 200px;
+            height: 2px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            margin: 30px auto 0;
+            overflow: hidden;
+            animation: taglineIn 0.3s ease 1.5s forwards;
+            opacity: 0;
+        }
+        .splash-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #38d9f5, #9d5cff);
+            border-radius: 2px;
+            animation: progressFill 2s ease 1.6s forwards;
+            width: 0%;
+        }
+        @keyframes progressFill {
+            to { width: 100%; }
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar-double {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
+            background: rgba(7, 11, 20, 0.88);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--border-subtle);
+            box-shadow: 0 1px 0 rgba(56, 217, 245, 0.08), 0 8px 32px rgba(0,0,0,0.3);
+        }
+        body.light-mode .navbar-double {
+            background: rgba(240, 244, 248, 0.92);
+            box-shadow: 0 1px 0 rgba(37, 99, 235, 0.06), 0 8px 32px rgba(0,0,0,0.08);
+        }
+
+        .navbar-double .navbar-brand {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: var(--btn-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent !important;
+            padding: 0.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.3px;
+        }
+
+        .navbar-double .nav-link {
+            color: var(--text-secondary) !important;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.2s, opacity 0.2s;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+        }
+        .navbar-double .nav-link:hover {
+            color: var(--accent-cyan) !important;
+            background: rgba(56, 217, 245, 0.06);
+        }
+        .navbar-double .top-row {
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+        .navbar-double .bottom-row { padding: 2px 0; }
+
+        i { color: var(--icon-color); }
+
+        /* ===== MAIN CONTENT ===== */
+        #mainContent {
+            padding: 32px 0;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            animation: pageIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in { animation: pageIn 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* ===== GLASS CARDS ===== */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            box-shadow: var(--shadow-card);
+            padding: 32px;
+            color: var(--text-primary);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(56, 217, 245, 0.3), transparent);
+        }
+
+        .auth-card {
+            max-width: 440px;
+            margin: 80px auto;
+            background: var(--bg-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 28px;
+            padding: 48px 40px;
+            box-shadow: var(--shadow-card), 0 0 0 1px rgba(56, 217, 245, 0.05);
+        }
+        .auth-card h2 { color: var(--text-primary); font-family: 'Syne', sans-serif; }
+
+        /* ===== METRIC CARDS ===== */
+        .metric-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px 20px;
+            color: var(--text-primary);
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(56, 217, 245, 0.03), rgba(157, 92, 255, 0.03));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .metric-card:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: var(--glow-cyan), var(--shadow-card);
+        }
+        .metric-card:hover::after { opacity: 1; }
+
+        .metric-value {
+            font-family: 'Syne', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            background: var(--btn-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin: 12px 0 6px;
+        }
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+        .metric-icon {
+            font-size: 1.8rem;
+            opacity: 0.8;
+        }
+        .edit-capital {
+            position: absolute; top: 12px; right: 12px;
+            cursor: pointer;
+            color: var(--accent-cyan);
+            font-size: 1rem;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .edit-capital:hover { opacity: 1; }
+
+        /* ===== TRADE CARDS ===== */
+        .trade-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 22px;
+            margin-bottom: 16px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .trade-card.win-row { background: rgba(34, 201, 136, 0.05); border-color: rgba(34, 201, 136, 0.2); }
+        .trade-card.loss-row { background: rgba(245, 82, 82, 0.05); border-color: rgba(245, 82, 82, 0.2); }
+        .trade-card:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-3px);
+            box-shadow: 0 16px 40px -8px rgba(0,0,0,0.4), var(--glow-cyan);
+        }
+        .trade-card .field-row {
+            display: flex; margin-bottom: 8px; align-items: baseline;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            padding-bottom: 6px;
+        }
+        .trade-card .field-row:last-of-type { border-bottom: none; }
+        .trade-card .field-label { width: 90px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; }
+        .trade-card .field-value { flex: 1; color: var(--text-primary); font-size: 0.9rem; }
+        .trade-card .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+        .trade-image-thumb { max-width: 56px; max-height: 56px; border-radius: 10px; cursor: pointer; border: 1px solid var(--border-subtle); float: right; margin-left: 10px; margin-bottom: 8px; }
+        .trade-image-thumb:hover { opacity: 0.8; transform: scale(1.05); }
+
+        /* ===== BUTTONS ===== */
+        .btn-custom {
+            background: var(--btn-gradient);
+            border: none;
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: white;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 24px -6px rgba(56, 217, 245, 0.4);
+            letter-spacing: 0.3px;
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 16px 32px -8px rgba(157, 92, 255, 0.5);
+            color: white;
+        }
+        .btn-custom:active { transform: translateY(0); }
+
+        .btn-outline-custom {
+            background: transparent;
+            border: 1.5px solid var(--border-accent);
+            color: var(--accent-cyan);
+            padding: 11px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn-outline-custom:hover {
+            background: rgba(56, 217, 245, 0.08);
+            color: var(--text-primary);
+            border-color: var(--accent-cyan);
+            transform: translateY(-1px);
+        }
+
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(56, 217, 245, 0.08);
+            border: 1px solid var(--border-subtle);
+            border-radius: 100px;
+            padding: 9px 20px;
+            color: var(--accent-cyan);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 16px;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            background: rgba(56, 217, 245, 0.15);
+            border-color: var(--accent-cyan);
+            transform: translateX(-3px);
+            color: var(--text-primary);
+        }
+
+        /* ===== FORM ELEMENTS ===== */
+        .form-control, .form-select {
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 14px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .form-control:focus, .form-select:focus {
+            background: var(--input-bg);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(56, 217, 245, 0.15);
+            color: var(--text-primary);
+            outline: none;
+        }
+        .form-control::placeholder { color: var(--placeholder-color); opacity: 1; }
+        .form-label {
+            color: var(--label-color);
+            font-weight: 500;
+            font-size: 0.88rem;
+            margin-bottom: 6px;
+            letter-spacing: 0.2px;
+        }
+        textarea.form-control { border-radius: 14px; }
+
+        /* ===== CHART CONTAINERS ===== */
+        .chart-container {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(56, 217, 245, 0.2), transparent);
+        }
+        .chart-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chart-title i { font-size: 1rem; }
+
+        /* ===== TICKER ===== */
+        .ticker-container {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 28px;
+            box-shadow: var(--shadow-card);
+        }
+        .nse-header {
+            width: 100%;
+            height: 44px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .nse-marquee { display: inline-block; white-space: nowrap; animation: moveTicker 50s linear infinite; }
+        .nse-item { display: inline-block; padding: 0 32px; font-weight: 600; font-size: 0.92rem; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
+        .price-up { color: var(--accent-green); margin-left: 6px; }
+        .tv-header { width: 100%; min-height: 44px; border-bottom: none; background: transparent; }
+        @keyframes moveTicker { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+
+        /* ===== WATCHLIST ===== */
+        .watchlist-table { width: 100%; border-collapse: collapse; }
+        .watchlist-table th {
+            text-align: left;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+        .watchlist-table td { padding: 12px; border-bottom: 1px solid var(--border-subtle); transition: background 0.2s; }
+        .watchlist-table tr:hover td { background: rgba(56, 217, 245, 0.03); }
+        .symbol-cell { font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
+        .price-cell { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 1rem; color: var(--text-primary); }
+        .change-cell { font-size: 0.85rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+        .remove-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; }
+        .remove-btn:hover { color: var(--accent-red); background: rgba(245, 82, 82, 0.08); }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(4, 7, 17, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-accent);
+            border-radius: 24px;
+            padding: 32px;
+            width: 90%; max-width: 440px;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-card), 0 0 60px rgba(56, 217, 245, 0.1);
+            animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-content h3 { margin-top: 0; color: var(--text-primary); font-family: 'Syne', sans-serif; }
+
+        .guide-box {
+            background: rgba(56, 217, 245, 0.05);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 16px;
+            margin: 16px 0;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+        .guide-box b { color: var(--accent-cyan); }
+        .hint-text { font-size: 0.78rem; color: var(--text-muted); text-align: center; margin-top: 14px; }
+        .ai-ask { color: var(--accent-cyan); font-weight: 600; display: block; margin-top: 6px; }
+        .cancel-link { color: var(--text-muted); text-decoration: none; font-size: 0.88rem; display: block; text-align: center; margin-top: 14px; cursor: pointer; transition: color 0.2s; }
+        .cancel-link:hover { color: var(--accent-cyan); }
+
+        /* ===== IMAGE MODAL ===== */
+        .image-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 3000; cursor: pointer;
+        }
+        .image-modal-content { max-width: 90%; max-height: 90%; }
+        .image-modal-content img { width: 100%; height: auto; border-radius: 16px; border: 2px solid var(--border-accent); }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            display: flex; align-items: center;
+            margin-bottom: 28px;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .top-bar h2 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1.6rem;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        /* ===== LIVE DOT ===== */
+        .live-dot {
+            display: inline-block; width: 8px; height: 8px;
+            border-radius: 50%; background: var(--accent-green);
+            margin-right: 6px;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: livePulse 2s ease-in-out infinite;
+        }
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px var(--accent-green); }
+            50% { opacity: 0.7; transform: scale(1.3); box-shadow: 0 0 16px var(--accent-green); }
+        }
+
+        /* ===== RUNNING BADGE ===== */
+        .running-badge {
+            background: rgba(240, 180, 41, 0.15);
+            color: var(--accent-amber);
+            border: 1px solid rgba(240, 180, 41, 0.3);
+            border-radius: 100px;
+            padding: 4px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== DATE FILTER ===== */
+        .date-filter-wrapper {
+            display: flex; align-items: center;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 12px;
+            padding: 6px 14px;
+            gap: 8px;
+        }
+        .date-filter-wrapper i { font-size: 1rem; }
+        .date-filter-wrapper input[type="date"] {
+            background: transparent; border: none;
+            color: var(--text-primary); outline: none;
+            font-size: 0.9rem; width: 140px;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .date-filter-wrapper input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5) brightness(1.5); cursor: pointer; }
+        .clear-date-btn {
+            background: rgba(255,255,255,0.06);
+            border: none; border-radius: 50%;
+            width: 26px; height: 26px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+            font-size: 0.8rem;
+        }
+        .clear-date-btn:hover { background: rgba(245, 82, 82, 0.15); color: var(--accent-red); }
+
+        /* ===== CALENDAR ===== */
+        .calendar-popup {
+            position: absolute;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-accent);
+            border-radius: 24px;
+            padding: 24px;
+            z-index: 1050;
+            width: 310px;
+            box-shadow: var(--shadow-card), 0 0 40px rgba(56, 217, 245, 0.1);
+        }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; color: var(--text-primary); }
+        .calendar-header button {
+            background: rgba(56, 217, 245, 0.08);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            width: 34px; height: 34px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent-cyan); cursor: pointer; transition: all 0.2s;
+        }
+        .calendar-header button:hover { background: rgba(56, 217, 245, 0.15); border-color: var(--accent-cyan); }
+        .calendar-header span { font-weight: 700; font-family: 'Syne', sans-serif; font-size: 1rem; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+        .weekday { color: var(--text-muted); font-size: 0.72rem; font-weight: 700; padding: 6px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .calendar-day {
+            padding: 8px 4px; border-radius: 10px; cursor: pointer;
+            transition: all 0.2s; font-size: 0.88rem; font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .calendar-day:hover { background: rgba(56, 217, 245, 0.1); color: var(--accent-cyan); }
+        .calendar-day.trade-day { background: rgba(56, 217, 245, 0.12); color: var(--accent-cyan); font-weight: 700; }
+        .calendar-day.selected { background: var(--btn-gradient); color: white; font-weight: 700; }
+        .calendar-day.empty { cursor: default; pointer-events: none; }
+
+        /* ===== FILTER ROW ===== */
+        .filter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+
+        /* ===== CHAT ===== */
+        .chat-container {
+            height: 480px; overflow-y: auto; padding: 20px;
+            background: rgba(0,0,0,0.2); border-radius: 20px;
+            margin-bottom: 16px; display: flex; flex-direction: column;
+            scroll-behavior: smooth; gap: 12px;
+        }
+        .chat-container::-webkit-scrollbar { width: 4px; }
+        .chat-container::-webkit-scrollbar-track { background: transparent; }
+        .chat-container::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
+
+        .message {
+            max-width: 78%; padding: 14px 18px; border-radius: 18px;
+            word-wrap: break-word; animation: pageIn 0.3s ease;
+            font-size: 0.92rem; line-height: 1.55; position: relative;
+        }
+        .user-message {
+            background: linear-gradient(135deg, rgba(56, 217, 245, 0.15), rgba(157, 92, 255, 0.15));
+            border: 1px solid var(--border-accent);
+            align-self: flex-end; margin-left: auto;
+            color: var(--text-primary);
+        }
+        .ai-message {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-subtle);
+            align-self: flex-start;
+            color: var(--text-primary);
+        }
+        .thinking-message { opacity: 0.6; font-style: italic; }
+
+        .chat-input-area {
+            display: flex; gap: 10px; align-items: center;
+            background: var(--bg-card);
+            border-radius: 100px;
+            padding: 6px 6px 6px 20px;
+            border: 1.5px solid var(--border-subtle);
+            transition: border-color 0.2s;
+        }
+        .chat-input-area:focus-within { border-color: var(--border-accent); }
+        .chat-input {
+            flex: 1; background: transparent; border: none;
+            color: var(--text-primary); font-size: 0.95rem;
+            padding: 10px 0; font-family: 'DM Sans', sans-serif;
+        }
+        .chat-input:focus { outline: none; }
+        .chat-send-btn, .chat-suggest-btn, .chat-attach-btn {
+            border: none; border-radius: 50%;
+            width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; cursor: pointer; transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .chat-send-btn { background: var(--btn-gradient); color: white; box-shadow: 0 4px 16px -4px rgba(56, 217, 245, 0.5); }
+        .chat-send-btn:hover { transform: scale(1.08); }
+        .chat-attach-btn, .chat-suggest-btn {
+            background: rgba(56, 217, 245, 0.08);
+            border: 1px solid var(--border-subtle);
+            color: var(--accent-cyan);
+        }
+        .chat-attach-btn:hover, .chat-suggest-btn:hover {
+            background: rgba(56, 217, 245, 0.15);
+            transform: scale(1.05);
+        }
+        .chat-image-preview { max-width: 130px; max-height: 130px; border-radius: 12px; margin: 5px 0; border: 1px solid var(--border-subtle); cursor: pointer; }
+
+        .suggest-popup {
+            position: absolute; bottom: 70px; right: 70px;
+            width: 280px; max-height: 380px; overflow-y: auto;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-accent);
+            border-radius: 18px; padding: 12px;
+            z-index: 1060;
+            box-shadow: var(--shadow-card);
+        }
+        .suggest-popup .suggest-item {
+            padding: 10px 14px; margin: 4px 0;
+            border-radius: 12px; cursor: pointer;
+            transition: all 0.2s; color: var(--text-secondary);
+            font-size: 0.88rem;
+        }
+        .suggest-popup .suggest-item:hover { background: rgba(56, 217, 245, 0.1); color: var(--accent-cyan); }
+
+        /* ===== INBOX ===== */
+        .inbox-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 16px; margin-bottom: 10px;
+            transition: border-color 0.2s;
+        }
+        .inbox-item.unread { border-left: 3px solid var(--accent-green); }
+        .inbox-item:hover { border-color: var(--border-accent); }
+
+        /* ===== MISC ===== */
+        .text-muted { color: var(--text-muted) !important; }
+        .bright-link { color: var(--accent-cyan) !important; font-weight: 600; text-decoration: none; }
+        .bright-link:hover { text-decoration: underline; }
+        .fullscreen-icon { cursor: pointer; color: var(--text-secondary); font-size: 1.1rem; padding: 0 10px; transition: color 0.2s; }
+        .fullscreen-icon:hover { color: var(--accent-cyan); }
+        .risk-warning { color: var(--accent-amber); font-size: 0.88rem; margin-top: 8px; font-weight: 500; }
+        .limit-warning { color: var(--accent-amber); font-weight: 600; margin-bottom: 10px; }
+        .dropdown-menu { background: var(--bg-card); border: 1px solid var(--border-accent); border-radius: 16px; box-shadow: var(--shadow-card); padding: 8px; }
+        .dropdown-item { color: var(--text-primary); border-radius: 10px; padding: 8px 14px; font-size: 0.9rem; transition: all 0.15s; }
+        .dropdown-item:hover { background: rgba(56, 217, 245, 0.08); color: var(--accent-cyan); }
+        .dropdown-item i { width: 20px; margin-right: 8px; }
+        .dropdown-divider { border-color: var(--border-subtle); margin: 4px 0; }
+        .terms-link { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); color: var(--text-muted); font-size: 0.75rem; text-decoration: none; z-index: 1000; }
+        .terms-link:hover { color: var(--accent-cyan); }
+        .tradingview-widget-container { height: 100%; width: 100%; }
+        .tradingview-widget-container iframe { border-radius: 0 0 18px 18px !important; }
+
+        /* ===== BADGES ===== */
+        .badge { font-weight: 600; border-radius: 6px; font-size: 0.75rem; letter-spacing: 0.5px; padding: 4px 8px; }
+
+        /* ===== SCROLL ===== */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-accent); }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .metric-value { font-size: 1.7rem; }
+            .auth-card { margin: 20px; padding: 30px 24px; }
+            .top-bar { flex-direction: column; align-items: flex-start; }
+            .back-btn { margin-bottom: 8px; }
+            body { padding-top: 108px; }
+            .glass-card { padding: 20px; border-radius: 20px; }
+        }
+
+        /* ===== DASHBOARD SECTION HEADER ===== */
+        .section-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 20px;
+        }
+        .section-header h2 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        .section-header .tagline {
+            font-size: 0.82rem;
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+            font-weight: 500;
+            opacity: 0.8;
+        }
+        /* Align icons in cards with text */
+        .metric-card i { color: var(--icon-color); }
+    </style>
+</head>
+<body class="dark-mode">
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- ======= SPLASH SCREEN ======= -->
+    <div id="splashScreen">
+        <div class="splash-content">
+            <i class="bi bi-graph-up-arrow splash-logo-icon"></i>
+            <span class="splash-brand">Tradofi</span>
+            <div class="splash-divider"></div>
+            <span class="splash-tagline">Track Your Trading Journey</span>
+            <div class="splash-progress">
+                <div class="splash-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Watchlist Modal -->
+    <div class="modal-overlay" id="watchlistModal">
+        <div class="modal-content">
+            <h3><i class="bi bi-plus-circle"></i> Add Symbol</h3>
+            <div class="guide-box">
+                <b>Common Symbols:</b><br>
+                • Nifty 50: <b>^NSEI</b><br>
+                • Bank Nifty: <b>^NSEBANK</b><br>
+                • Stocks: <b>RELIANCE.NS, SBIN.NS</b><br>
+                • Crypto: <b>BTC-USD, ETH-USD</b><br>
+                • Gold: <b>GC=F</b>
+            </div>
+            <input type="text" class="form-control" id="watchlistSymbolInput" placeholder="Enter Symbol (e.g. ^NSEI)">
+            <button class="btn btn-custom w-100 mt-3" onclick="addWatchlistItemFromModal()"><i class="bi bi-plus"></i> Add to Watchlist</button>
+            <div class="hint-text">
+                *Prices may have a 1‑minute delay.<br>
+                <span class="ai-ask">💬 Ask AI: "What is the Yahoo Finance symbol for [Stock Name]?"</span>
+            </div>
+            <a class="cancel-link" onclick="closeWatchlistModal()">Cancel</a>
+        </div>
+    </div>
+
+    <!-- Image modal -->
+    <div class="image-modal-overlay" id="imageModal" onclick="closeImageModal()">
+        <div class="image-modal-content">
+            <img id="modalImage" src="" alt="">
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <div class="navbar-double">
+        <div class="top-row">
+            <div class="container d-flex justify-content-between align-items-center">
+                <a class="navbar-brand d-flex align-items-center" href="#">
+                    <i class="bi bi-graph-up-arrow" style="font-size:1.4rem;"></i>
+                    <span style="font-size:1rem; font-weight:700; margin-left:8px; font-family:'Syne',sans-serif; letter-spacing:-0.3px;">Tradofi — Track Your Trading Journey</span>
+                </a>
+                <div class="fullscreen-icon" onclick="toggleFullscreen()" title="Fullscreen">
+                    <i class="bi bi-arrows-fullscreen"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-row">
+            <div class="container">
+                <nav class="navbar navbar-expand-lg p-0">
+                    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon" style="filter: invert(0.5) brightness(1.5);"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="navLinks"></ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid" id="mainContent" style="padding-left: 28px; padding-right: 28px;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import {
+            getAuth, signInWithPopup, GoogleAuthProvider,
+            onAuthStateChanged, signOut
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            getFirestore, collection, addDoc, getDocs, query, where,
+            deleteDoc, doc, updateDoc, setDoc, getDoc, orderBy, onSnapshot
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAb9plOM2gNC22NZqenDsTeqSFrZP4ZtQE",
+            authDomain: "login-e28bf.firebaseapp.com",
+            projectId: "login-e28bf",
+            storageBucket: "login-e28bf.firebasestorage.app",
+            messagingSenderId: "516399855669",
+            appId: "1:516399855669:web:35e553d29e4b39fb02997c",
+            measurementId: "G-38J3J7YDH0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
+        let trades = [];
+        let watchlist = [];
+        let currency = localStorage.getItem('preferred_currency') || 'USD';
+        let termsAccepted = localStorage.getItem('terms_accepted') === 'true';
+        let currentChatId = null;
+        let messagesUnsubscribe = null;
+        const ADMIN_UID = 'rzc2yTtchrThPICp4yfZ29qPtjj1';
+
+        // ==================== SPLASH SCREEN ====================
+        function hideSplash() {
+            let splash = document.getElementById('splashScreen');
+            splash.classList.add('fade-out');
+            setTimeout(() => { splash.style.display = 'none'; }, 1000);
+        }
+
+        // ==================== FULLSCREEN ====================
+        window.toggleFullscreen = function() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else if (document.exitFullscreen) document.exitFullscreen();
+        };
+
+        // ==================== PARTICLE BACKGROUND ====================
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+        function initParticles() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8,
+                    isUp: Math.random() > 0.5, size: Math.random() * 2 + 0.5,
+                    opacity: Math.random() * 0.4 + 0.1
+                });
+            }
+        }
+        function drawParticles() {
+            ctx.clearRect(0, 0, width, height);
+            const upColor = '34, 201, 136';
+            const downColor = '245, 82, 82';
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > width) p.vx *= -1;
+                if (p.y < 0 || p.y > height) p.vy *= -1;
+                const color = p.isUp ? upColor : downColor;
+                ctx.fillStyle = `rgba(${color}, ${p.opacity})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 120) {
+                        ctx.strokeStyle = `rgba(${color}, ${(1 - dist/120) * 0.12})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(drawParticles);
+        }
+        window.addEventListener('resize', initParticles);
+        initParticles(); drawParticles();
+
+        // ========== HELPER FUNCTIONS ==========
+        function showAlert(m, t = 'info') {
+            let d = document.createElement('div');
+            d.className = `alert alert-${t} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            d.style.zIndex = 9999; d.style.minWidth = '300px';
+            d.style.background = 'var(--bg-card)'; d.style.color = 'var(--text-primary)';
+            d.style.border = '1px solid var(--border-accent)';
+            d.style.backdropFilter = 'blur(20px)';
+            d.style.borderRadius = '16px';
+            d.style.boxShadow = '0 16px 48px rgba(0,0,0,0.4)';
+            d.innerHTML = `${m} <button type="button" class="btn-close" data-bs-dismiss="alert" style="filter: invert(0.5) brightness(1.5);"></button>`;
+            document.body.appendChild(d);
+            setTimeout(() => d.remove(), 3000);
+        }
+        window.showAlert = showAlert;
+
+        function formatMoney(amount, curr) {
+            if (amount == null) return '-';
+            return (curr === 'INR' ? '₹' : '$') + amount.toFixed(2);
+        }
+        function formatLocal(amount) {
+            return currency === 'INR' ? '₹' + amount.toFixed(2) : '$' + amount.toFixed(2);
+        }
+
+        // ========== CURRENCY & THEME ==========
+        function setCurrency(c) {
+            currency = c;
+            localStorage.setItem('preferred_currency', c);
+            if (currentView && typeof currentView.name === 'function') currentView.name(...currentView.params);
+            updateNav();
+        }
+        window.setCurrency = setCurrency;
+
+        let savedTheme = localStorage.getItem('selected_theme') || 'dark';
+        if (savedTheme === 'light') { document.body.classList.add('light-mode'); document.body.classList.remove('dark-mode'); }
+        else { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); }
+        window.toggleTheme = function() {
+            if (document.body.classList.contains('light-mode')) {
+                document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode');
+                localStorage.setItem('selected_theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode');
+                localStorage.setItem('selected_theme', 'light');
+            }
+            if (currentView && typeof currentView.name === 'function') currentView.name(...currentView.params);
+        };
+
+        // ========== NAVIGATION ==========
+        let currentView = { name: showLogin, params: [] };
+        let historyStack = [];
+        function navigateTo(f, p) {
+            if (currentView.name && !['showLogin', 'showAISettings'].includes(currentView.name))
+                historyStack.push({ name: currentView.name, params: currentView.params });
+            currentView = { name: f, params: p };
+            f(...p);
+        }
+        window.navigateTo = navigateTo;
+
+        function goBack() {
+            if (historyStack.length) {
+                let prev = historyStack.pop();
+                currentView = { name: prev.name, params: prev.params };
+                prev.name(...prev.params);
+            } else {
+                currentUser ? showDashboard() : showLogin();
+            }
+        }
+        window.goBack = goBack;
+        function clearHistory() { historyStack = []; }
+        window.clearHistory = clearHistory;
+
+        // ========== ADMIN SETTINGS FROM FIRESTORE ==========
+        async function getAdminAIKey() {
+            try {
+                const docRef = doc(db, 'admin', 'ai');
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().apiKey || '' : '';
+            } catch { return ''; }
+        }
+        async function getAdminAIModel() {
+            try {
+                const docRef = doc(db, 'admin', 'ai');
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().model || 'openai/gpt-4o' : 'openai/gpt-4o';
+            } catch { return 'openai/gpt-4o'; }
+        }
+        async function getAdminTickerIndian() {
+            try {
+                const docRef = doc(db, 'admin', 'ticker');
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().indian || ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS'] : ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS'];
+            } catch { return ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS']; }
+        }
+        async function getAdminTickerGlobal() {
+            try {
+                const docRef = doc(db, 'admin', 'ticker');
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().global || ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X'] : ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X'];
+            } catch { return ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X']; }
+        }
+
+        // ========== USER LIMITS FROM FIRESTORE ==========
+        async function getUserLimit(username, type) {
+            try {
+                const docRef = doc(db, 'limits', username);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (type === 'trades') return data.tradeLimit || 5;
+                    if (type === 'images') return data.imageLimit || 1;
+                    if (type === 'ai_questions') return data.aiLimit || 5;
+                }
+            } catch (e) { console.error("Error getting limit", e); }
+            if (type === 'trades') return 5;
+            if (type === 'images') return 1;
+            if (type === 'ai_questions') return 5;
+            return 20;
+        }
+        async function getUserAIAccess(username) {
+            try {
+                const docRef = doc(db, 'limits', username);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data().aiAccess || true : true;
+            } catch { return true; }
+        }
+        function incrementUserCount(username, type) {
+            let today = new Date().toISOString().slice(0, 10);
+            let key = `count_${type}_${username}_${today}`;
+            let val = localStorage.getItem(key);
+            let newVal = val ? parseInt(val) + 1 : 1;
+            localStorage.setItem(key, newVal.toString());
+        }
+        function getUserTodayCount(username, type) {
+            let today = new Date().toISOString().slice(0, 10);
+            let key = `count_${type}_${username}_${today}`;
+            let val = localStorage.getItem(key);
+            return val ? parseInt(val) : 0;
+        }
+
+        // ========== ONLINE TRACKING ==========
+        function updateLastActive() {
+            if (currentUser) {
+                setDoc(doc(db, 'users', currentUser), { lastActive: new Date() }, { merge: true });
+                localStorage.setItem(`last_active_${currentUser}`, Date.now().toString());
+            }
+        }
+        setInterval(updateLastActive, 60000);
+
+        // ========== EXCHANGE RATE ==========
+        async function getExchangeRate() {
+            if (!currentUser) return 90;
+            try {
+                const docRef = doc(db, 'users', currentUser);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() && docSnap.data().exchangeRate ? docSnap.data().exchangeRate : 90;
+            } catch { return 90; }
+        }
+        async function setExchangeRate(rate) {
+            if (!currentUser) return;
+            await setDoc(doc(db, 'users', currentUser), { exchangeRate: rate }, { merge: true });
+        }
+
+        async function getDailyLossLimitUSD() {
+            if (!currentUser) return 0;
+            try {
+                const docRef = doc(db, 'users', currentUser);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() && docSnap.data().dailyLossLimit ? docSnap.data().dailyLossLimit : 0;
+            } catch { return 0; }
+        }
+        async function setDailyLossLimitUSD(amount) {
+            if (!currentUser) return;
+            await setDoc(doc(db, 'users', currentUser), { dailyLossLimit: amount }, { merge: true });
+        }
+
+        async function getCapitalUSD() {
+            if (!currentUser) return 0;
+            try {
+                const docRef = doc(db, 'users', currentUser);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() && docSnap.data().capital ? docSnap.data().capital : 0;
+            } catch { return 0; }
+        }
+        async function setCapitalUSD(amount) {
+            if (!currentUser) return;
+            await setDoc(doc(db, 'users', currentUser), { capital: amount }, { merge: true });
+        }
+
+        // ========== FIRESTORE TRADES ==========
+        async function loadTrades() {
+            if (!currentUser) return [];
+            try {
+                const q = query(collection(db, 'trades'), where('userId', '==', currentUser));
+                const querySnapshot = await getDocs(q);
+                trades = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        date: data.date ? new Date(data.date) : new Date(data.entryDate),
+                        entryDate: data.entryDate ? new Date(data.entryDate) : null,
+                        exitDate: data.exitDate ? new Date(data.exitDate) : null
+                    };
+                });
+                return trades;
+            } catch (error) {
+                console.error('Error loading trades:', error);
+                showAlert('Failed to load trades', 'danger');
+                return [];
+            }
+        }
+
+        async function saveTradeToFirestore(tradeData) {
+            try {
+                const docRef = await addDoc(collection(db, 'trades'), {
+                    ...tradeData, userId: currentUser, createdAt: new Date().toISOString()
+                });
+                return docRef.id;
+            } catch (error) { console.error('Error saving trade:', error); throw error; }
+        }
+
+        async function updateTradeInFirestore(tradeId, updatedData) {
+            try { await updateDoc(doc(db, 'trades', tradeId), updatedData); }
+            catch (error) { console.error('Error updating trade:', error); throw error; }
+        }
+
+        async function deleteTradeFromFirestore(tradeId) {
+            try { await deleteDoc(doc(db, 'trades', tradeId)); }
+            catch (error) { console.error('Error deleting trade:', error); throw error; }
+        }
+
+        // ========== FIRESTORE WATCHLIST ==========
+        async function loadWatchlist() {
+            if (!currentUser) return [];
+            try {
+                const q = query(collection(db, 'watchlist'), where('userId', '==', currentUser));
+                const querySnapshot = await getDocs(q);
+                watchlist = querySnapshot.docs.map(doc => ({
+                    id: doc.id, symbol: doc.data().symbol,
+                    lastPrice: null, prevClose: null, currency: null
+                }));
+                return watchlist;
+            } catch (error) { console.error('Error loading watchlist:', error); return []; }
+        }
+
+        async function addToWatchlist(symbol) {
+            try {
+                await addDoc(collection(db, 'watchlist'), { symbol, userId: currentUser, addedAt: new Date().toISOString() });
+                await loadWatchlist();
+            } catch (error) { console.error('Error adding to watchlist:', error); throw error; }
+        }
+
+        async function removeFromWatchlist(symbol) {
+            try {
+                const q = query(collection(db, 'watchlist'), where('userId', '==', currentUser), where('symbol', '==', symbol));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(async (doc) => { await deleteDoc(doc.ref); });
+                await loadWatchlist();
+            } catch (error) { console.error('Error removing from watchlist:', error); }
+        }
+
+        // ========== USER PROFILE ==========
+        async function saveUserProfile(uid, data) {
+            try { await setDoc(doc(db, 'users', uid), data, { merge: true }); }
+            catch (error) { console.error('Error saving user profile:', error); }
+        }
+
+        async function getUserProfile(uid) {
+            try {
+                const docRef = doc(db, 'users', uid);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data() : null;
+            } catch (error) { console.error('Error getting user profile:', error); return null; }
+        }
+
+        // ========== UPDATE NAV ==========
+        async function updateNav() {
+            const nav = document.getElementById('navLinks');
+            if (!nav) return;
+            if (currentUser) {
+                let isLight = document.body.classList.contains('light-mode');
+                nav.innerHTML = `
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showDashboard,[]); return false;"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showTrades,[]); return false;"><i class="bi bi-list-ul"></i> Trades</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showWatchlist,[]); return false;"><i class="bi bi-eye"></i> Watchlist</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showAnalysis,[]); return false;"><i class="bi bi-bar-chart-line"></i> Analysis</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showAI,[]); return false;"><i class="bi bi-robot"></i> AI Coach</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="navigateTo(showImportExport,[]); return false;"><i class="bi bi-arrow-left-right"></i> Import/Export</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-gear"></i> Settings</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="setCurrency('USD'); return false;"><i class="bi bi-currency-dollar"></i> USD ${currency==='USD'?'✓':''}</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setCurrency('INR'); return false;"><i class="bi bi-currency-rupee"></i> INR ${currency==='INR'?'✓':''}</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="toggleTheme(); return false;"><i class="bi bi-circle-half"></i> ${isLight ? 'Dark Mode' : 'Light Mode'}</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="navigateTo(showDailyLossLimit,[]); return false;"><i class="bi bi-exclamation-octagon"></i> Daily Loss Limit</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="navigateTo(showExchangeRate,[]); return false;"><i class="bi bi-arrow-left-right"></i> USD→INR Rate</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> Account</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="showProfile(); return false;"><i class="bi bi-person"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="navigateTo(showInbox,[]); return false;"><i class="bi bi-envelope"></i> Inbox</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="logout(); return false;"><i class="bi bi-box-arrow-right" style="color:inherit;"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                `;
+            } else {
+                nav.innerHTML = `
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="showLogin(); return false;"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
+                `;
+            }
+        }
+
+        // ========== TERMS ==========
+        function showTerms() {
+            alert(`TERMS AND CONDITIONS\n\n1. Acceptance of Terms\nBy accessing or using Tradofi ("the Platform"), you agree to be bound by these Terms and Conditions.\n\n2. No Financial Advice\nThe Platform is for educational and informational purposes only. It does not constitute financial, investment, or trading advice.\n\n3. Risk Disclaimer\nTrading in financial markets involves substantial risk. Past performance is not indicative of future results.\n\n4. Data Storage & Privacy\nAll data is stored securely in Firebase Firestore and associated with your account. We do not share your personal information with third parties without your consent.\n\n5. Account Security\nYou are responsible for maintaining the confidentiality of your login credentials.\n\n6. Limitation of Liability\nTradofi and its operators shall not be liable for any damages arising from your use of the Platform.\n\n7. Governing Law\nThese Terms shall be governed by the laws of India.\n\n8. Contact\nFor questions, contact: thequeen.goad1110@gmail.com`);
+        }
+        window.showTerms = showTerms;
+
+        // ========== AUTH FUNCTIONS ==========
+        function showLogin() {
+            currentView = { name: showLogin, params: [] };
+            document.getElementById('mainContent').innerHTML = `
+                <div class="auth-card fade-in">
+                    <div style="text-align:center; margin-bottom:32px;">
+                        <div style="font-size:3rem; background:linear-gradient(135deg,#38d9f5,#9d5cff); -webkit-background-clip:text; background-clip:text; color:transparent; margin-bottom:12px;">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+                        <h2 style="font-family:'Syne',sans-serif; font-weight:800; font-size:1.8rem; letter-spacing:-0.5px;">Welcome to Tradofi</h2>
+                        <p style="color:var(--text-muted); font-size:0.92rem; margin-top:6px;">Sign in to access your trading journal</p>
+                    </div>
+                    <button onclick="googleLogin()" class="btn btn-custom w-100 py-3" style="font-size:1rem; display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <i class="bi bi-google" style="color:white; font-size:1.1rem;"></i> Continue with Google
+                    </button>
+                    <div style="text-align:center; margin-top:24px;">
+                        <a href="#" onclick="showTerms();return false;" class="bright-link" style="font-size:0.82rem; opacity:0.7;">Terms & Conditions</a>
+                    </div>
+                </div>
+            `;
+        }
+        window.showLogin = showLogin;
+
+        async function googleLogin() {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                await saveUserProfile(user.uid, { name: user.displayName || 'Google User', email: user.email });
+                currentUser = user.uid;
+                await loadTrades(); await loadWatchlist();
+                updateNav(); clearHistory(); showDashboard(); updateLastActive();
+                showAlert('Welcome back! 🚀', 'success');
+            } catch (error) { showAlert(error.message, 'danger'); }
+        }
+        window.googleLogin = googleLogin;
+
+        async function logout() {
+            if (messagesUnsubscribe) messagesUnsubscribe();
+            await signOut(auth);
+            currentUser = null; trades = []; watchlist = [];
+            clearHistory(); updateNav(); showLogin();
+            showAlert('Logged out successfully', 'info');
+        }
+        window.logout = logout;
+
+        async function resetAllTrades() {
+            if (!currentUser) return;
+            if (confirm('⚠️ Are you sure you want to delete ALL your trades? This cannot be undone.')) {
+                const q = query(collection(db, 'trades'), where('userId', '==', currentUser));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(async (doc) => { await deleteDoc(doc.ref); });
+                trades = [];
+                showAlert('All trades have been reset.', 'success');
+                if (currentView.name === showProfile) showProfile();
+                else if (currentView.name === showDashboard) showDashboard();
+                else if (currentView.name === showTrades) showTrades();
+            }
+        }
+        window.resetAllTrades = resetAllTrades;
+
+        // ========== QUOTE FETCHING ==========
+        async function fetchQuoteDetails(symbol) {
+            const proxy = "https://api.allorigins.win/get?url=";
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+            try {
+                const res = await fetch(proxy + encodeURIComponent(url));
+                const data = await res.json();
+                const json = JSON.parse(data.contents);
+                const result = json.chart.result[0];
+                const meta = result.meta;
+                return { price: meta.regularMarketPrice, previousClose: meta.previousClose, currency: meta.currency };
+            } catch (e) { return null; }
+        }
+
+        let nseSymbols = await getAdminTickerIndian();
+        let globalSymbols = await getAdminTickerGlobal();
+
+        async function updateNseTicker() {
+            let html = "";
+            for (let s of nseSymbols) {
+                let quote = await fetchQuoteDetails(s);
+                if (quote) {
+                    let change = quote.price - quote.previousClose;
+                    let changePercent = (change / quote.previousClose) * 100;
+                    let sign = change >= 0 ? '+' : '';
+                    let color = change >= 0 ? 'var(--up)' : 'var(--down)';
+                    html += `<span class="nse-item"><span style="color:var(--nse-color);font-weight:700;">${s}</span> <span style="color:${color};margin-left:6px;">${quote.currency === 'INR' ? '₹' : '$'}${quote.price.toLocaleString()}</span> <span style="color:${color};">${sign}${changePercent.toFixed(2)}%</span></span>`;
+                }
+            }
+            let tape = document.getElementById('nseTape');
+            if (tape) tape.innerHTML = html + html;
+        }
+
+        async function updateWatchlistPrices() {
+            if (!currentUser || !watchlist.length) return;
+            let updated = false;
+            for (let item of watchlist) {
+                let quote = await fetchQuoteDetails(item.symbol);
+                if (quote) { item.lastPrice = quote.price; item.prevClose = quote.previousClose; item.currency = quote.currency; updated = true; }
+                else { item.lastPrice = null; item.prevClose = null; item.currency = null; }
+            }
+            if (updated && currentView.name === showWatchlist) renderWatchlistTable();
+        }
+
+        let tickerInterval = null, watchlistInterval = null;
+
+        // ========== ENHANCED CHART DEFAULTS ==========
+        function getChartDefaults() {
+            const isLight = document.body.classList.contains('light-mode');
+            return {
+                gridColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)',
+                textColor: isLight ? '#6b7a99' : '#4e6080',
+                tooltipBg: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(13,21,37,0.95)',
+                tooltipBorder: isLight ? 'rgba(37,99,235,0.3)' : 'rgba(56,217,245,0.3)',
+                tooltipText: isLight ? '#1a2744' : '#e8f0fe',
+            };
+        }
+
+        function applyChartDefaults() {
+            const d = getChartDefaults();
+            Chart.defaults.color = d.textColor;
+            Chart.defaults.font.family = "'DM Sans', sans-serif";
+            Chart.defaults.font.size = 12;
+        }
+
+        // ========== DASHBOARD ==========
+        async function showDashboard() {
+            if (!currentUser) { showLogin(); return; }
+            await loadTrades();
+            if (!tickerInterval) { updateNseTicker(); tickerInterval = setInterval(updateNseTicker, 20000); }
+            if (!watchlistInterval) { watchlistInterval = setInterval(updateWatchlistPrices, 20000); }
+
+            let totalTrades = trades.length;
+            let winningTrades = trades.filter(t => t.pnl > 0);
+            let losingTrades = trades.filter(t => t.pnl < 0);
+            let winCount = winningTrades.length;
+            let lossCount = losingTrades.length;
+            let winRate = totalTrades ? ((winCount / totalTrades) * 100).toFixed(2) : 0;
+            let totalPnl = trades.reduce((s, t) => s + (t.pnl - (t.commission || 0)), 0);
+            let avgWin = winCount ? winningTrades.reduce((s, t) => s + t.pnl, 0) / winCount : 0;
+            let avgLoss = lossCount ? losingTrades.reduce((s, t) => s + t.pnl, 0) / lossCount : 0;
+
+            let monthlyData = {};
+            trades.forEach(t => { let m = t.date.toISOString().slice(0, 7); monthlyData[m] = (monthlyData[m] || 0) + t.pnl; });
+            let months = Object.keys(monthlyData).sort();
+            let monthlyPnL = months.map(m => monthlyData[m]);
+
+            let capUSD = await getCapitalUSD();
+            let rate = await getExchangeRate();
+            let capDisplay = currency === 'USD' ? capUSD : capUSD * rate;
+
+            let sortedTrades = [...trades].sort((a, b) => a.date - b.date);
+            let runningCapitalUSD = capUSD;
+            let capitalPoints = [{ date: sortedTrades[0]?.date || new Date(), value: runningCapitalUSD }];
+            sortedTrades.forEach(t => {
+                let pnlUSD = t.currency === 'USD' ? (t.pnl - (t.commission || 0)) : (t.pnl - (t.commission || 0)) / rate;
+                runningCapitalUSD += pnlUSD;
+                capitalPoints.push({ date: t.date, value: runningCapitalUSD });
+            });
+            let equityLabels = capitalPoints.map(p => p.date.toLocaleDateString());
+            let equityData = capitalPoints.map(p => currency === 'INR' ? p.value * rate : p.value);
+
+            let strategyMap = new Map();
+            trades.forEach(t => {
+                let strat = t.strategy || 'Other';
+                let netPnl = t.pnl - (t.commission || 0);
+                let converted = t.currency === currency ? netPnl : (t.currency === 'USD' ? netPnl * rate : netPnl / rate);
+                strategyMap.set(strat, (strategyMap.get(strat) || 0) + converted);
+            });
+            let strategyNames = Array.from(strategyMap.keys());
+            let strategyPnL = Array.from(strategyMap.values());
+
+            let dayStats = { 0:{win:0,loss:0},1:{win:0,loss:0},2:{win:0,loss:0},3:{win:0,loss:0},4:{win:0,loss:0},5:{win:0,loss:0},6:{win:0,loss:0} };
+            trades.forEach(t => { let day = t.date.getDay(); if (t.pnl > 0) dayStats[day].win++; else if (t.pnl < 0) dayStats[day].loss++; });
+            let dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            let dayWinRates = dayNames.map((d, idx) => { let total = dayStats[idx].win + dayStats[idx].loss; return total ? ((dayStats[idx].win / total) * 100).toFixed(1) : 0; });
+
+            let todayStr = new Date().toISOString().slice(0, 10);
+            let todayLoss = trades.filter(t => t.date.toISOString().slice(0, 10) === todayStr && t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0);
+            let limitUSD = await getDailyLossLimitUSD();
+            if (limitUSD > 0 && todayLoss < 0 && Math.abs(todayLoss) > limitUSD) {
+                showAlert(`⚠️ Today's loss (${formatMoney(Math.abs(todayLoss), 'USD')}) exceeded your daily limit!`, 'warning');
+            }
+
+            let pnlColor = totalPnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+
+            let html = `
+                <div class="fade-in">
+                    <div class="ticker-container">
+                        <div class="nse-header"><div class="nse-marquee" id="nseTape">Loading market data...</div></div>
+                        <div class="tv-header" id="tvWidgetContainer"></div>
+                    </div>
+
+                    <div class="section-header mb-4">
+                        <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+                        <span class="tagline">📈 Track Your Trades, Perfect Your Craft</span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="bi bi-cash-stack"></i></div>
+                                <div class="metric-value" style="background:${totalPnl>=0?'linear-gradient(135deg,#22c988,#38d9f5)':'linear-gradient(135deg,#f55252,#ff8c69)'}; -webkit-background-clip:text; background-clip:text; color:transparent;">${formatMoney(totalPnl, currency)}</div>
+                                <div class="metric-label">Total Net P&L</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="bi bi-trophy"></i></div>
+                                <div class="metric-value">${winRate}%</div>
+                                <div class="metric-label">Win Rate</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="bi bi-arrow-up-circle"></i></div>
+                                <div class="metric-value" style="background:linear-gradient(135deg,#22c988,#38d9f5); -webkit-background-clip:text; background-clip:text; color:transparent;">${formatMoney(avgWin, currency)}</div>
+                                <div class="metric-label">Avg Win</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="bi bi-arrow-down-circle"></i></div>
+                                <div class="metric-value" style="background:linear-gradient(135deg,#f55252,#ff8c69); -webkit-background-clip:text; background-clip:text; color:transparent;">${formatMoney(avgLoss, currency)}</div>
+                                <div class="metric-label">Avg Loss</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="bi bi-bar-chart-steps"></i></div>
+                                <div class="metric-value">${totalTrades}</div>
+                                <div class="metric-label">Total Trades</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="bi bi-check-circle-fill" style="color:var(--accent-green);"></i></div>
+                                <div class="metric-value" style="background:linear-gradient(135deg,#22c988,#38d9f5); -webkit-background-clip:text; background-clip:text; color:transparent;">${winCount}</div>
+                                <div class="metric-label">Winning Trades</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="bi bi-x-circle-fill" style="color:var(--accent-red);"></i></div>
+                                <div class="metric-value" style="background:linear-gradient(135deg,#f55252,#ff8c69); -webkit-background-clip:text; background-clip:text; color:transparent;">${lossCount}</div>
+                                <div class="metric-label">Losing Trades</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card" onclick="promptSetCapital()" style="cursor:pointer;">
+                                <div class="metric-icon"><i class="bi bi-piggy-bank"></i></div>
+                                <div class="metric-value">${formatMoney(capDisplay, currency)}</div>
+                                <div class="metric-label">Current Capital</div>
+                                <i class="bi bi-pencil-square edit-capital" onclick="event.stopPropagation(); promptSetCapital();" title="Set initial capital"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <div class="chart-title"><i class="bi bi-bar-chart"></i> Monthly P&L</div>
+                                <canvas id="monthlyChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <div class="chart-title"><i class="bi bi-pie-chart"></i> Win vs Loss</div>
+                                <canvas id="winLossChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="chart-container">
+                                <div class="chart-title"><i class="bi bi-graph-up"></i> Equity Curve</div>
+                                <canvas id="capitalChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <div class="chart-title"><i class="bi bi-layers"></i> P&L by Strategy</div>
+                                <canvas id="strategyChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <div class="chart-title"><i class="bi bi-calendar-week"></i> Win Rate by Day</div>
+                                <canvas id="dayChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('mainContent').innerHTML = html;
+
+            const tvContainer = document.getElementById('tvWidgetContainer');
+            if (tvContainer) {
+                tvContainer.innerHTML = '';
+                const widgetDiv = document.createElement('div');
+                widgetDiv.className = 'tradingview-widget-container';
+                const innerDiv = document.createElement('div');
+                innerDiv.className = 'tradingview-widget-container__widget';
+                widgetDiv.appendChild(innerDiv);
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+                script.async = true;
+                script.innerHTML = JSON.stringify({
+                    "symbols": globalSymbols.map(s => ({ proName: s, title: s })),
+                    "showSymbolLogo": true,
+                    "colorTheme": document.body.classList.contains('light-mode') ? "light" : "dark",
+                    "isTransparent": true,
+                    "displayMode": "adaptive",
+                    "locale": "in"
+                });
+                widgetDiv.appendChild(script);
+                tvContainer.appendChild(widgetDiv);
+            }
+
+            setTimeout(() => {
+                applyChartDefaults();
+                const d = getChartDefaults();
+                const commonOptions = {
+                    responsive: true,
+                    animation: { duration: 800, easing: 'easeInOutQuart' },
+                    plugins: {
+                        legend: { labels: { color: d.textColor, font: { family: "'DM Sans', sans-serif", size: 12 }, padding: 16 } },
+                        tooltip: {
+                            backgroundColor: d.tooltipBg,
+                            borderColor: d.tooltipBorder,
+                            borderWidth: 1,
+                            titleColor: d.tooltipText,
+                            bodyColor: d.tooltipText,
+                            padding: 12,
+                            cornerRadius: 10,
+                            displayColors: true,
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: d.gridColor, drawBorder: false }, ticks: { color: d.textColor } },
+                        y: { grid: { color: d.gridColor, drawBorder: false }, ticks: { color: d.textColor } }
+                    }
+                };
+
+                // Monthly P&L Bar Chart
+                new Chart(document.getElementById('monthlyChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: `Monthly P&L (${currency})`,
+                            data: monthlyPnL.map(v => currency === 'INR' ? v * rate : v),
+                            backgroundColor: monthlyPnL.map(v => v >= 0 ? 'rgba(34,201,136,0.7)' : 'rgba(245,82,82,0.7)'),
+                            borderColor: monthlyPnL.map(v => v >= 0 ? '#22c988' : '#f55252'),
+                            borderWidth: 1.5,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false } } }
+                });
+
+                // Win/Loss Doughnut
+                new Chart(document.getElementById('winLossChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Wins', 'Losses'],
+                        datasets: [{
+                            data: [winCount, lossCount],
+                            backgroundColor: ['rgba(34,201,136,0.8)', 'rgba(245,82,82,0.8)'],
+                            borderColor: ['#22c988', '#f55252'],
+                            borderWidth: 2,
+                            hoverBorderWidth: 3,
+                            hoverOffset: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        animation: { duration: 900, easing: 'easeInOutQuart' },
+                        cutout: '65%',
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: d.textColor, padding: 20, font: { family: "'DM Sans', sans-serif", size: 13 } } },
+                            tooltip: { ...commonOptions.plugins.tooltip }
+                        }
+                    }
+                });
+
+                // Equity Curve
+                const equityPositive = equityData.length > 1 && equityData[equityData.length - 1] >= equityData[0];
+                new Chart(document.getElementById('capitalChart'), {
+                    type: 'line',
+                    data: {
+                        labels: equityLabels,
+                        datasets: [{
+                            label: `Capital (${currency})`,
+                            data: equityData,
+                            borderColor: equityPositive ? '#22c988' : '#f55252',
+                            backgroundColor: (context) => {
+                                const chart = context.chart;
+                                const { ctx, chartArea } = chart;
+                                if (!chartArea) return null;
+                                const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                                if (equityPositive) {
+                                    gradient.addColorStop(0, 'rgba(34,201,136,0.25)');
+                                    gradient.addColorStop(1, 'rgba(34,201,136,0)');
+                                } else {
+                                    gradient.addColorStop(0, 'rgba(245,82,82,0.25)');
+                                    gradient.addColorStop(1, 'rgba(245,82,82,0)');
+                                }
+                                return gradient;
+                            },
+                            fill: true,
+                            tension: 0.45,
+                            borderWidth: 2.5,
+                            pointBackgroundColor: equityPositive ? '#22c988' : '#f55252',
+                            pointBorderColor: 'transparent',
+                            pointRadius: equityData.length > 20 ? 0 : 4,
+                            pointHoverRadius: 6,
+                        }]
+                    },
+                    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false } } }
+                });
+
+                // Strategy Bar
+                new Chart(document.getElementById('strategyChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: strategyNames,
+                        datasets: [{
+                            label: `P&L by Strategy (${currency})`,
+                            data: strategyPnL,
+                            backgroundColor: strategyPnL.map(v => v >= 0 ? 'rgba(56,217,245,0.6)' : 'rgba(245,82,82,0.6)'),
+                            borderColor: strategyPnL.map(v => v >= 0 ? '#38d9f5' : '#f55252'),
+                            borderWidth: 1.5,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false } } }
+                });
+
+                // Day Win Rate
+                new Chart(document.getElementById('dayChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: dayNames,
+                        datasets: [{
+                            label: 'Win Rate %',
+                            data: dayWinRates,
+                            backgroundColor: dayWinRates.map(v => v >= 50 ? 'rgba(157,92,255,0.65)' : 'rgba(157,92,255,0.3)'),
+                            borderColor: '#9d5cff',
+                            borderWidth: 1.5,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        scales: {
+                            ...commonOptions.scales,
+                            y: { ...commonOptions.scales.y, max: 100, ticks: { color: d.textColor, callback: v => v + '%' } }
+                        },
+                        plugins: { ...commonOptions.plugins, legend: { display: false } }
+                    }
+                });
+            }, 100);
+        }
+        window.showDashboard = showDashboard;
+
+        // ========== PROMPT CAPITAL ==========
+        async function promptSetCapital() {
+            let currentUSD = await getCapitalUSD();
+            let rate = await getExchangeRate();
+            let currentDisplay = currency === 'USD' ? currentUSD : currentUSD * rate;
+            let input = prompt(`Enter your initial capital (in ${currency}):`, currentDisplay.toFixed(2));
+            if (input !== null) {
+                let newCapDisplay = parseFloat(input);
+                if (!isNaN(newCapDisplay) && newCapDisplay >= 0) {
+                    let newCapUSD = currency === 'USD' ? newCapDisplay : newCapDisplay / rate;
+                    await setCapitalUSD(newCapUSD);
+                    if (currentView.name === showAddTrade) showAddTrade();
+                    else showDashboard();
+                    showAlert("Initial capital updated", "success");
+                } else { showAlert("Invalid amount", "warning"); }
+            }
+        }
+        window.promptSetCapital = promptSetCapital;
+
+        // ========== TRADES PAGE ==========
+        let currentCalendarMonth = new Date();
+
+        function showTrades() {
+            if (!currentUser) { showLogin(); return; }
+            let openCount = trades.filter(t => t.status === 'open').length;
+            let filtered = [...trades].sort((a, b) => b.date - a.date);
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar">
+                        <span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span>
+                        <h2 class="mb-0"><i class="bi bi-list-ul"></i> Trades</h2>
+                        ${openCount > 0 ? `<span class="running-badge ms-2"><i class="bi bi-play-circle"></i> Running: ${openCount}</span>` : ''}
+                        <button class="btn btn-custom ms-auto" onclick="navigateTo(showAddTrade,[])"><i class="bi bi-plus-circle"></i> New Trade</button>
+                    </div>
+                    <div class="filter-row">
+                        <input type="text" class="form-control" id="searchTrade" placeholder="🔍 Search asset or strategy..." style="width:250px; border-radius:12px;" oninput="applyFilters()">
+                        <div class="date-filter-wrapper">
+                            <i class="bi bi-calendar3" id="calendarIcon" style="cursor:pointer;" onclick="toggleCalendarPopup()"></i>
+                            <input type="date" id="dateFilter" onchange="applyFilters()">
+                            <span class="clear-date-btn" onclick="clearDateFilter()" title="Clear date filter">✕</span>
+                        </div>
+                    </div>
+                    <div id="tradesContainer" class="row g-3 mt-1">${renderTradeCards(filtered)}</div>
+                </div>
+                <div id="calendarPopup" class="calendar-popup" style="display:none;"></div>
+            `;
+        }
+        window.showTrades = showTrades;
+
+        function toggleCalendarPopup() {
+            const popup = document.getElementById('calendarPopup');
+            if (popup.style.display === 'none' || !popup.style.display) {
+                const icon = document.getElementById('calendarIcon');
+                const rect = icon.getBoundingClientRect();
+                popup.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+                popup.style.left = (rect.left + window.scrollX) + 'px';
+                popup.style.display = 'block';
+                renderCalendar(currentCalendarMonth);
+                function closeCalendar(e) {
+                    if (!popup.contains(e.target) && e.target.id !== 'calendarIcon') {
+                        popup.style.display = 'none';
+                        document.removeEventListener('click', closeCalendar);
+                    }
+                }
+                setTimeout(() => document.addEventListener('click', closeCalendar), 0);
+            } else { popup.style.display = 'none'; }
+        }
+        window.toggleCalendarPopup = toggleCalendarPopup;
+
+        function renderCalendar(date) {
+            const popup = document.getElementById('calendarPopup');
+            const year = date.getFullYear(), month = date.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDay = firstDay.getDay();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+            let tradeDates = new Set(trades.map(t => t.date.toISOString().slice(0, 10)));
+            let html = `<div class="calendar-header"><button onclick="changeMonth(-1)"><i class="bi bi-chevron-left"></i></button><span>${monthNames[month]} ${year}</span><button onclick="changeMonth(1)"><i class="bi bi-chevron-right"></i></button></div><div class="calendar-grid">${dayNames.map(d => `<div class="weekday">${d}</div>`).join('')}`;
+            for (let i = 0; i < startDay; i++) html += '<div class="calendar-day empty"></div>';
+            for (let d = 1; d <= daysInMonth; d++) {
+                let dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                let hasTrade = tradeDates.has(dateStr);
+                let selectedClass = (document.getElementById('dateFilter')?.value === dateStr) ? 'selected' : '';
+                html += `<div class="calendar-day ${hasTrade ? 'trade-day' : ''} ${selectedClass}" onclick="selectDate('${dateStr}')">${d}</div>`;
+            }
+            html += '</div>';
+            popup.innerHTML = html;
+        }
+        window.renderCalendar = renderCalendar;
+
+        function changeMonth(delta) { currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + delta); renderCalendar(currentCalendarMonth); }
+        window.changeMonth = changeMonth;
+
+        function selectDate(dateStr) {
+            document.getElementById('dateFilter').value = dateStr;
+            document.getElementById('calendarPopup').style.display = 'none';
+            applyFilters();
+        }
+        window.selectDate = selectDate;
+
+        function clearDateFilter() { let d = document.getElementById('dateFilter'); if (d) { d.value = ''; applyFilters(); } }
+        window.clearDateFilter = clearDateFilter;
+
+        function applyFilters() {
+            let search = document.getElementById('searchTrade')?.value.toLowerCase() || '';
+            let dateFilter = document.getElementById('dateFilter')?.value;
+            let filtered = trades.filter(t => {
+                let matchesSearch = t.asset.toLowerCase().includes(search) || (t.strategy && t.strategy.toLowerCase().includes(search));
+                let matchesDate = true;
+                if (dateFilter) matchesDate = (t.date.toISOString().slice(0, 10) === dateFilter);
+                return matchesSearch && matchesDate;
+            }).sort((a, b) => b.date - a.date);
+            document.getElementById('tradesContainer').innerHTML = renderTradeCards(filtered);
+        }
+        window.applyFilters = applyFilters;
+
+        function renderTradeCards(tradesArray) {
+            if (!tradesArray.length) return '<p class="text-center py-5" style="color:var(--text-muted);">No trades found. Add your first trade! 📊</p>';
+            return tradesArray.map(t => {
+                let rowClass = t.pnl > 0 ? 'win-row' : (t.pnl < 0 ? 'loss-row' : '');
+                let percent = '';
+                if (t.entry && t.exit && t.entry !== 0 && t.status === 'closed') {
+                    if (t.direction === 'Long') percent = ((t.exit - t.entry) / t.entry * 100).toFixed(2) + '%';
+                    else percent = ((t.entry - t.exit) / t.entry * 100).toFixed(2) + '%';
+                } else if (t.status === 'open') percent = 'Running';
+                let entryDisplay = formatMoney(t.entry, t.currency);
+                let exitDisplay = t.status === 'open' ? '<span class="badge" style="background:rgba(240,180,41,0.15);color:var(--accent-amber);border:1px solid rgba(240,180,41,0.3);">Running</span>' : (t.exit ? formatMoney(t.exit, t.currency) : '-');
+                let stopDisplay = t.stop ? formatMoney(t.stop, t.currency) : '-';
+                let pnlDisplay = t.status === 'open' ? 'Unrealized' : formatMoney(t.pnl, t.currency);
+                let rrDisplay = t.riskReward ? t.riskReward.toFixed(2) : '-';
+                let statusBadge = t.status === 'open' ? '<span class="badge" style="background:rgba(240,180,41,0.15);color:var(--accent-amber);">Open</span>' : '<span class="badge" style="background:rgba(78,96,128,0.2);color:var(--text-muted);">Closed</span>';
+                let imageHtml = t.image ? `<img src="${t.image}" class="trade-image-thumb" onclick="openImageModal('${t.image}')" title="Click to enlarge">` : '';
+                let entryDateStr = t.entryDate ? t.entryDate.toLocaleString() : t.date.toLocaleString();
+                let exitDateStr = t.exitDate ? t.exitDate.toLocaleString() : (t.status === 'open' ? 'Running' : '-');
+                return `
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="trade-card ${rowClass}">
+                            ${imageHtml}
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                                <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:1rem;">${t.asset}</span>
+                                <span class="badge ${t.direction === 'Long' ? '' : ''}" style="background:${t.direction==='Long'?'rgba(34,201,136,0.15)':'rgba(245,82,82,0.15)'}; color:${t.direction==='Long'?'var(--accent-green)':'var(--accent-red)'}; border:1px solid ${t.direction==='Long'?'rgba(34,201,136,0.3)':'rgba(245,82,82,0.3)'};">${t.direction === 'Long' ? '📈' : '📉'} ${t.direction}</span>
+                            </div>
+                            <div class="field-row"><span class="field-label">💰 P&L</span><span class="field-value fw-bold" style="color:${t.pnl>0?'var(--accent-green)':'var(--accent-red)'}; font-family:'JetBrains Mono',monospace;">${pnlDisplay}</span></div>
+                            <div class="field-row"><span class="field-label">📅 Entry</span><span class="field-value">${entryDateStr}</span></div>
+                            <div class="field-row"><span class="field-label">📅 Exit</span><span class="field-value">${exitDateStr}</span></div>
+                            <div class="field-row"><span class="field-label">📥 Entry</span><span class="field-value" style="font-family:'JetBrains Mono',monospace;">${entryDisplay}</span></div>
+                            <div class="field-row"><span class="field-label">📤 Exit</span><span class="field-value">${exitDisplay}</span></div>
+                            <div class="field-row"><span class="field-label">🛑 Stop</span><span class="field-value" style="font-family:'JetBrains Mono',monospace;">${stopDisplay}</span></div>
+                            <div class="field-row"><span class="field-label">📏 Size</span><span class="field-value">${t.size}</span></div>
+                            <div class="field-row"><span class="field-label">📊 %</span><span class="field-value" style="font-family:'JetBrains Mono',monospace;">${percent}</span></div>
+                            <div class="field-row"><span class="field-label">⚖️ R/R</span><span class="field-value" style="font-family:'JetBrains Mono',monospace;">${rrDisplay}</span></div>
+                            <div class="actions">
+                                <button class="btn btn-sm btn-outline-custom" style="padding:6px 14px;" onclick="editTrade('${t.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm" style="background:rgba(245,82,82,0.1); border:1px solid rgba(245,82,82,0.3); color:var(--accent-red); border-radius:20px; padding:6px 14px;" onclick="deleteTrade('${t.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openImageModal(src) { document.getElementById('modalImage').src = src; document.getElementById('imageModal').style.display = 'flex'; }
+        window.openImageModal = openImageModal;
+        function closeImageModal() { document.getElementById('imageModal').style.display = 'none'; }
+        window.closeImageModal = closeImageModal;
+
+        const strategyOptions = ['📊 Breakout', '📈 Trend Following', '🔄 Reversal', '📉 Scalping', '🏦 Swing', '⚡ Momentum', '📐 Range Trading', '📅 News Based'];
+        const behaviorOptions = ['😎 Disciplined', '😬 FOMO', '😡 Revenge', '😌 Patient', '😰 Nervous', '😤 Greedy', '😨 Fearful', '😐 Neutral'];
+        const emotionOptions = ['😊 Confident', '😟 Anxious', '😐 Neutral', '😤 Greedy', '😨 Fearful', '😌 Calm', '😬 Overexcited', '😞 Regret'];
+        const setupOptions = ['📅 Day Trade', '🌙 Swing Trade', '📈 Position Trade', '⚡ Scalp', '📊 Momentum', '📉 Breakdown', '📈 Breakout', '⏳ Pre-market'];
+
+        async function showAddTrade(tradeId = null) {
+            if (!currentUser) { showLogin(); return; }
+            let capUSD = await getCapitalUSD();
+            if (capUSD <= 0) {
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="glass-card fade-in" style="max-width:560px; margin:0 auto; text-align:center;">
+                        <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-exclamation-circle"></i> Capital Required</h2></div>
+                        <p class="mt-4" style="color:var(--text-muted);">You need to set your initial capital before adding a trade.</p>
+                        <button class="btn btn-custom" onclick="promptSetCapital()"><i class="bi bi-piggy-bank"></i> Set Initial Capital</button>
+                        <button class="btn btn-outline-custom mt-2" onclick="goBack()">Cancel</button>
+                    </div>
+                `;
+                return;
+            }
+            let trade = tradeId ? trades.find(t => t.id === tradeId) : null;
+            function displayValue(value) { return value?.toFixed(2) ?? ''; }
+            function formatDateTimeForInput(date) {
+                if (!date) return '';
+                let d = new Date(date);
+                return d.toISOString().slice(0, 16);
+            }
+            function buildSelect(id, label, options, currentVal) {
+                let html = `<label class="form-label">${label}</label><select class="form-select" id="${id}">`;
+                options.forEach(opt => html += `<option value="${opt}" ${currentVal === opt ? 'selected' : ''}>${opt}</option>`);
+                html += '</select>';
+                return html;
+            }
+            let isOpen = trade ? trade.status === 'open' : false;
+            let defaultEntry = trade ? formatDateTimeForInput(trade.entryDate || trade.date) : formatDateTimeForInput(new Date());
+            let defaultExit = trade?.exitDate ? formatDateTimeForInput(trade.exitDate) : '';
+
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi ${tradeId ? 'bi-pencil-square' : 'bi-plus-circle'}"></i> ${tradeId ? 'Edit Trade' : 'New Trade'}</h2></div>
+                    <form onsubmit="saveTrade(event${tradeId ? ', \'' + tradeId + '\'' : ''})">
+                        <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label">📅 Entry Date & Time</label><input type="datetime-local" class="form-control" id="tradeEntryDate" value="${defaultEntry}" required></div>
+                            <div class="col-md-6"><label class="form-label">📅 Exit Date & Time</label><input type="datetime-local" class="form-control" id="tradeExitDate" value="${defaultExit}" ${isOpen ? 'disabled' : ''}></div>
+                            <div class="col-md-6"><label class="form-label">💼 Asset</label><input type="text" class="form-control" id="tradeAsset" value="${trade?.asset || ''}" required placeholder="e.g. EUR/USD, AAPL"></div>
+                            <div class="col-md-4"><label class="form-label">📊 Leverage</label><input type="number" step="0.1" class="form-control" id="tradeLeverage" value="${trade?.leverage || '1'}" placeholder="1"></div>
+                            <div class="col-md-4"><label class="form-label">🧭 Direction</label><select class="form-select" id="tradeDirection" required onchange="calculateRisk()"><option value="Long" ${trade?.direction === 'Long' ? 'selected' : ''}>📈 Long</option><option value="Short" ${trade?.direction === 'Short' ? 'selected' : ''}>📉 Short</option></select></div>
+                            <div class="col-md-4"><label class="form-label">📥 Entry Price</label><input type="number" step="0.00001" class="form-control" id="tradeEntry" value="${displayValue(trade?.entry)}" required oninput="calculateRisk()"></div>
+                            <div class="col-md-4"><label class="form-label">📤 Exit Price</label><input type="number" step="0.00001" class="form-control" id="tradeExit" value="${displayValue(trade?.exit)}" ${isOpen ? 'disabled' : ''} placeholder="Price"></div>
+                            <div class="col-md-4"><label class="form-label">🛑 Stop Loss</label><input type="number" step="0.00001" class="form-control" id="tradeStop" value="${displayValue(trade?.stop)}" oninput="calculateRisk()"></div>
+                            <div class="col-md-4"><label class="form-label">📏 Position Size</label><input type="number" step="0.01" class="form-control" id="tradeSize" value="${trade?.size || ''}" required oninput="calculateRisk()"></div>
+                            <div class="col-md-4"><label class="form-label">🔘 Status</label><select class="form-select" id="tradeStatus" onchange="toggleExitField(); calculateRisk();"><option value="open" ${isOpen ? 'selected' : ''}>Open</option><option value="closed" ${!isOpen ? 'selected' : ''}>Closed</option></select></div>
+                            <div class="col-md-4">${buildSelect('tradeStrategy', '🧠 Strategy', strategyOptions, trade?.strategy)}</div>
+                            <div class="col-md-4">${buildSelect('tradeBehavior', '🧠 Behavior', behaviorOptions, trade?.behavior)}</div>
+                            <div class="col-md-4">${buildSelect('tradeEmotion', '😊 Emotion', emotionOptions, trade?.emotion)}</div>
+                            <div class="col-md-4">${buildSelect('tradeSetup', '⚙️ Setup', setupOptions, trade?.setup)}</div>
+                            <div class="col-12">
+                                <label class="form-label">📸 Screenshot (optional)</label>
+                                <input type="file" class="form-control" id="tradeImage" accept="image/*" onchange="previewImage(this)">
+                                <div id="imagePreview" style="margin-top:10px;"></div>
+                            </div>
+                            <div class="col-12"><label class="form-label">📝 Notes</label><textarea class="form-control" id="tradeNotes" rows="3">${trade?.notes || ''}</textarea></div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div style="background:var(--input-bg); border:1.5px solid var(--input-border); border-radius:16px; padding:20px;">
+                                    <h6 style="font-family:'Syne',sans-serif; margin-bottom:14px;"><i class="bi bi-calculator"></i> Risk Calculator (${currency})</h6>
+                                    <div class="row text-center g-2">
+                                        <div class="col-md-3"><small style="color:var(--text-muted);">Risk Amount</small><div class="fw-bold" style="color:var(--accent-red);" id="riskAmount">${formatLocal(0)}</div></div>
+                                        <div class="col-md-3"><small style="color:var(--text-muted);">Risk-Reward</small><div class="fw-bold" style="color:var(--accent-cyan);" id="riskReward">0.00</div></div>
+                                        <div class="col-md-3"><small style="color:var(--text-muted);">Position Value</small><div class="fw-bold" id="positionValue">${formatLocal(0)}</div></div>
+                                        <div class="col-md-3"><small style="color:var(--text-muted);">Total Capital</small><div class="fw-bold" id="totalCapital">${formatLocal(0)}</div></div>
+                                    </div>
+                                    <div id="riskWarning" class="risk-warning"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-custom"><i class="bi bi-check2"></i> Save Trade</button>
+                            <button type="button" class="btn btn-outline-custom" onclick="goBack()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                <script>
+                    function toggleExitField() {
+                        let status = document.getElementById('tradeStatus').value;
+                        let exitField = document.getElementById('tradeExit');
+                        let exitDateField = document.getElementById('tradeExitDate');
+                        if (status === 'open') { exitField.disabled = true; exitField.value = ''; exitField.placeholder = 'Running'; exitDateField.disabled = true; exitDateField.value = ''; }
+                        else { exitField.disabled = false; exitField.placeholder = 'Price'; exitDateField.disabled = false; }
+                        calculateRisk();
+                    }
+                    function previewImage(input) {
+                        let preview = document.getElementById('imagePreview');
+                        preview.innerHTML = '';
+                        if (input.files && input.files[0]) {
+                            let reader = new FileReader();
+                            reader.onload = function(e) {
+                                let img = document.createElement('img');
+                                img.src = e.target.result;
+                                img.style.maxWidth = '150px'; img.style.maxHeight = '150px'; img.style.borderRadius = '12px'; img.style.border = '1px solid var(--border-subtle)';
+                                preview.appendChild(img);
+                            }
+                            reader.readAsDataURL(input.files[0]);
+                        }
+                    }
+                <\/script>
+            `;
+            if (trade) await calculateRisk();
+        }
+        window.showAddTrade = showAddTrade;
+
+        async function calculateRisk() {
+            let entry = parseFloat(document.getElementById('tradeEntry')?.value) || 0;
+            let exit = parseFloat(document.getElementById('tradeExit')?.value) || 0;
+            let stop = parseFloat(document.getElementById('tradeStop')?.value) || 0;
+            let size = parseFloat(document.getElementById('tradeSize')?.value) || 0;
+            let dir = document.getElementById('tradeDirection')?.value;
+            let leverage = parseFloat(document.getElementById('tradeLeverage')?.value) || 1;
+            let status = document.getElementById('tradeStatus')?.value;
+            let risk = 0, rr = 0;
+            let positionValue = entry * size * leverage;
+            if (status === 'closed') {
+                if (dir === 'Long') { if (stop && entry > stop) { risk = (entry - stop) * size * leverage; if (risk > 0) rr = ((exit - entry) * leverage) / (entry - stop); } }
+                else { if (stop && entry < stop) { risk = (stop - entry) * size * leverage; if (risk > 0) rr = ((entry - exit) * leverage) / (stop - entry); } }
+            } else {
+                if (dir === 'Long') { if (stop && entry > stop) risk = (entry - stop) * size * leverage; }
+                else { if (stop && entry < stop) risk = (stop - entry) * size * leverage; }
+            }
+            document.getElementById('riskAmount').innerText = formatLocal(Math.abs(risk));
+            document.getElementById('riskReward').innerText = (rr < 0 ? 0 : rr).toFixed(2);
+            document.getElementById('positionValue').innerText = formatLocal(positionValue);
+            let capUSD = await getCapitalUSD();
+            let rate = await getExchangeRate();
+            let capDisplay = currency === 'USD' ? capUSD : capUSD * rate;
+            document.getElementById('totalCapital').innerText = formatLocal(capDisplay);
+            let riskPercent = 2;
+            let maxRiskUSD = capUSD * (riskPercent / 100);
+            let riskUSD = currency !== 'USD' ? risk / rate : risk;
+            let warningDiv = document.getElementById('riskWarning');
+            warningDiv.innerHTML = riskUSD > maxRiskUSD ? `⚠️ Risk (${formatMoney(riskUSD, 'USD')}) exceeds ${riskPercent}% of capital (${formatMoney(maxRiskUSD, 'USD')})` : '';
+        }
+        window.calculateRisk = calculateRisk;
+
+        async function saveTrade(e, tradeId = null) {
+            e.preventDefault();
+            let imageInput = document.getElementById('tradeImage');
+            if (imageInput?.files?.[0]) {
+                let todayImages = getUserTodayCount(currentUser, 'images');
+                let imageLimit = await getUserLimit(currentUser, 'images');
+                if (todayImages >= imageLimit) { showAlert(`⚠️ Daily image limit (${imageLimit}) reached.`, 'warning'); return; }
+            }
+            let rawEntry = parseFloat(document.getElementById('tradeEntry').value);
+            let rawExit = parseFloat(document.getElementById('tradeExit').value);
+            let rawStop = parseFloat(document.getElementById('tradeStop').value) || null;
+            let size = parseFloat(document.getElementById('tradeSize').value);
+            let direction = document.getElementById('tradeDirection').value;
+            let leverage = parseFloat(document.getElementById('tradeLeverage').value) || 1;
+            let status = document.getElementById('tradeStatus').value;
+            let entryDateStr = document.getElementById('tradeEntryDate').value;
+            let exitDateStr = document.getElementById('tradeExitDate').value;
+            if (status === 'closed' && !tradeId) incrementUserCount(currentUser, 'trades');
+            if (imageInput?.files?.[0]) {
+                let file = imageInput.files[0];
+                let reader = new FileReader();
+                reader.onload = async function(ev) {
+                    if (!tradeId) incrementUserCount(currentUser, 'images');
+                    await performSave(ev.target.result, tradeId, rawEntry, rawExit, rawStop, size, direction, leverage, status, entryDateStr, exitDateStr);
+                };
+                reader.readAsDataURL(file);
+                return;
+            } else {
+                await performSave(null, tradeId, rawEntry, rawExit, rawStop, size, direction, leverage, status, entryDateStr, exitDateStr);
+            }
+        }
+        window.saveTrade = saveTrade;
+
+        async function performSave(image, tradeId, rawEntry, rawExit, rawStop, size, direction, leverage, status, entryDateStr, exitDateStr) {
+            let tradeData = {
+                entryDate: entryDateStr,
+                exitDate: status === 'closed' && exitDateStr ? exitDateStr : null,
+                date: entryDateStr,
+                asset: document.getElementById('tradeAsset').value,
+                leverage, direction,
+                entry: rawEntry,
+                exit: status === 'closed' ? rawExit : null,
+                stop: rawStop, size,
+                strategy: document.getElementById('tradeStrategy').value,
+                behavior: document.getElementById('tradeBehavior').value,
+                emotion: document.getElementById('tradeEmotion').value,
+                setup: document.getElementById('tradeSetup').value,
+                notes: document.getElementById('tradeNotes').value,
+                commission: 0, currency, status, image
+            };
+            if (status === 'closed' && tradeData.exit !== null) {
+                if (tradeData.direction === 'Long') {
+                    tradeData.pnl = (tradeData.exit - tradeData.entry) * tradeData.size * tradeData.leverage;
+                    if (tradeData.stop && tradeData.entry > tradeData.stop) { let risk = (tradeData.entry - tradeData.stop) * tradeData.leverage; tradeData.riskReward = ((tradeData.exit - tradeData.entry) * tradeData.leverage) / risk; }
+                    else tradeData.riskReward = null;
+                } else {
+                    tradeData.pnl = (tradeData.entry - tradeData.exit) * tradeData.size * tradeData.leverage;
+                    if (tradeData.stop && tradeData.entry < tradeData.stop) { let risk = (tradeData.stop - tradeData.entry) * tradeData.leverage; tradeData.riskReward = ((tradeData.entry - tradeData.exit) * tradeData.leverage) / risk; }
+                    else tradeData.riskReward = null;
+                }
+            } else { tradeData.pnl = 0; tradeData.riskReward = null; }
+            try {
+                if (tradeId) {
+                    await updateTradeInFirestore(tradeId, tradeData);
+                    let idx = trades.findIndex(t => t.id === tradeId);
+                    if (idx !== -1) trades[idx] = { ...tradeData, id: tradeId, date: new Date(entryDateStr), entryDate: new Date(entryDateStr), exitDate: exitDateStr ? new Date(exitDateStr) : null };
+                    showAlert('Trade updated ✅', 'success');
+                } else {
+                    let todayTrades = getUserTodayCount(currentUser, 'trades');
+                    let tradeLimit = await getUserLimit(currentUser, 'trades');
+                    if (status === 'closed' && todayTrades > tradeLimit) { showAlert(`⚠️ Daily trade limit (${tradeLimit}) reached.`, 'warning'); return; }
+                    let newId = await saveTradeToFirestore(tradeData);
+                    trades.push({ ...tradeData, id: newId, date: new Date(entryDateStr), entryDate: new Date(entryDateStr), exitDate: exitDateStr ? new Date(exitDateStr) : null });
+                    showAlert('Trade saved ✅', 'success');
+                }
+                goBack();
+            } catch (error) { showAlert('Error saving trade: ' + error.message, 'danger'); }
+        }
+
+        async function deleteTrade(tradeId) {
+            if (confirm('Delete this trade?')) {
+                await deleteTradeFromFirestore(tradeId);
+                trades = trades.filter(t => t.id !== tradeId);
+                showAlert('Trade deleted', 'info');
+                showTrades();
+            }
+        }
+        window.deleteTrade = deleteTrade;
+
+        function editTrade(tradeId) { navigateTo(showAddTrade, [tradeId]); }
+        window.editTrade = editTrade;
+
+        // ========== WATCHLIST ==========
+        function showWatchlist() {
+            if (!currentUser) { showLogin(); return; }
+            currentView = { name: showWatchlist, params: [] };
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar">
+                        <span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span>
+                        <h2 class="mb-0"><i class="bi bi-eye"></i> Watchlist</h2>
+                        <button class="btn btn-custom ms-auto" onclick="openWatchlistModal()"><i class="bi bi-plus-circle"></i> Add Symbol</button>
+                    </div>
+                    <div id="watchlistTableContainer"><p style="color:var(--text-muted);">Loading...</p></div>
+                </div>
+            `;
+            updateWatchlistPrices().then(renderWatchlistTable);
+        }
+        window.showWatchlist = showWatchlist;
+
+        function renderWatchlistTable() {
+            let c = document.getElementById('watchlistTableContainer');
+            if (!c) return;
+            if (!watchlist.length) { c.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px 0;">No symbols in watchlist. Add some!</p>'; return; }
+            let html = `<table class="watchlist-table"><thead><tr><th>Symbol</th><th>Price</th><th>Change</th><th>%</th><th></th></tr></thead><tbody>`;
+            watchlist.forEach(item => {
+                let change = (item.lastPrice && item.prevClose) ? item.lastPrice - item.prevClose : null;
+                let pct = (change && item.prevClose) ? ((change / item.prevClose) * 100).toFixed(2) : null;
+                let color = change === null ? 'var(--text-muted)' : (change >= 0 ? 'var(--up)' : 'var(--down)');
+                let sign = change !== null && change >= 0 ? '+' : '';
+                html += `<tr>
+                    <td class="symbol-cell">${item.symbol}</td>
+                    <td class="price-cell">${item.lastPrice ? (item.currency === 'INR' ? '₹' : '$') + item.lastPrice.toFixed(2) : '—'}</td>
+                    <td class="change-cell" style="color:${color};">${change !== null ? sign + change.toFixed(2) : '—'}</td>
+                    <td class="change-cell" style="color:${color};">${pct !== null ? sign + pct + '%' : '—'}</td>
+                    <td><button class="remove-btn" onclick="removeWatchlistItem('${item.symbol}')"><i class="bi bi-x-circle"></i></button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            c.innerHTML = html;
+        }
+
+        function openWatchlistModal() { document.getElementById('watchlistModal').style.display = 'flex'; document.getElementById('watchlistSymbolInput').value = ''; }
+        window.openWatchlistModal = openWatchlistModal;
+        function closeWatchlistModal() { document.getElementById('watchlistModal').style.display = 'none'; }
+        window.closeWatchlistModal = closeWatchlistModal;
+
+        async function addWatchlistItemFromModal() {
+            let input = document.getElementById('watchlistSymbolInput');
+            let symbol = input.value.trim().toUpperCase();
+            if (!symbol) { showAlert('Please enter a symbol', 'warning'); return; }
+            if (watchlist.some(item => item.symbol === symbol)) { showAlert('Symbol already in watchlist', 'warning'); closeWatchlistModal(); return; }
+            let quote = await fetchQuoteDetails(symbol);
+            if (!quote) { showAlert('Could not fetch data for symbol.', 'danger'); return; }
+            await addToWatchlist(symbol);
+            watchlist.push({ symbol, lastPrice: quote.price, prevClose: quote.previousClose, currency: quote.currency });
+            closeWatchlistModal(); renderWatchlistTable();
+            showAlert(`${symbol} added ✅`, 'success');
+        }
+        window.addWatchlistItemFromModal = addWatchlistItemFromModal;
+
+        async function removeWatchlistItem(symbol) {
+            await removeFromWatchlist(symbol);
+            watchlist = watchlist.filter(item => item.symbol !== symbol);
+            renderWatchlistTable();
+            showAlert(`${symbol} removed`, 'info');
+        }
+        window.removeWatchlistItem = removeWatchlistItem;
+
+        // ========== ANALYSIS ==========
+        async function showAnalysis() {
+            if (!currentUser) { showLogin(); return; }
+            await loadTrades();
+            let rate = await getExchangeRate();
+            let byStrategy = {};
+            trades.forEach(t => {
+                let s = t.strategy || 'Other';
+                if (!byStrategy[s]) byStrategy[s] = { trades: 0, wins: 0, pnl: 0 };
+                byStrategy[s].trades++;
+                if (t.pnl > 0) byStrategy[s].wins++;
+                byStrategy[s].pnl += t.currency === currency ? t.pnl : (t.currency === 'USD' ? t.pnl * rate : t.pnl / rate);
+            });
+
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-bar-chart-line"></i> Analysis</h2></div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="chart-container">
+                                <div class="chart-title"><i class="bi bi-layers"></i> Strategy Breakdown</div>
+                                <table class="watchlist-table" style="margin-top:8px;">
+                                    <thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Win Rate</th><th>Total P&L</th></tr></thead>
+                                    <tbody>
+                                        ${Object.entries(byStrategy).map(([s, d]) => `
+                                            <tr>
+                                                <td style="font-weight:600;">${s}</td>
+                                                <td>${d.trades}</td>
+                                                <td style="color:var(--accent-green);">${d.wins}</td>
+                                                <td style="font-family:'JetBrains Mono',monospace;">${d.trades ? ((d.wins/d.trades)*100).toFixed(1) : 0}%</td>
+                                                <td style="color:${d.pnl>=0?'var(--accent-green)':'var(--accent-red)'}; font-family:'JetBrains Mono',monospace; font-weight:600;">${formatMoney(d.pnl, currency)}</td>
+                                            </tr>`).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <div class="chart-title"><i class="bi bi-pie-chart"></i> Strategy Distribution</div>
+                                <canvas id="analysisStrategyChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <div class="chart-title"><i class="bi bi-emoji-smile"></i> Emotion Performance</div>
+                                <canvas id="analysisEmotionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                applyChartDefaults();
+                const d = getChartDefaults();
+                const stratLabels = Object.keys(byStrategy);
+                const stratData = Object.values(byStrategy).map(v => v.trades);
+                const colors = ['#38d9f5','#9d5cff','#22c988','#f55252','#f0b429','#ff6b8a','#60d394','#aaa1f5'];
+                new Chart(document.getElementById('analysisStrategyChart'), {
+                    type: 'doughnut',
+                    data: { labels: stratLabels, datasets: [{ data: stratData, backgroundColor: colors.slice(0, stratLabels.length).map(c => c + 'bb'), borderColor: colors.slice(0, stratLabels.length), borderWidth: 2, hoverOffset: 8 }] },
+                    options: { responsive: true, cutout: '60%', animation: { duration: 900 }, plugins: { legend: { position: 'bottom', labels: { color: d.textColor, padding: 16, font: { family: "'DM Sans', sans-serif" } } }, tooltip: { backgroundColor: d.tooltipBg, borderColor: d.tooltipBorder, borderWidth: 1, titleColor: d.tooltipText, bodyColor: d.tooltipText, cornerRadius: 10 } } }
+                });
+
+                let emotionMap = {};
+                trades.forEach(t => { let em = t.emotion || 'Unknown'; if (!emotionMap[em]) emotionMap[em] = { count: 0, pnl: 0 }; emotionMap[em].count++; emotionMap[em].pnl += t.pnl; });
+                const emLabels = Object.keys(emotionMap);
+                const emData = Object.values(emotionMap).map(v => v.pnl);
+                new Chart(document.getElementById('analysisEmotionChart'), {
+                    type: 'bar',
+                    data: { labels: emLabels, datasets: [{ label: 'P&L', data: emData, backgroundColor: emData.map(v => v >= 0 ? 'rgba(34,201,136,0.65)' : 'rgba(245,82,82,0.65)'), borderColor: emData.map(v => v >= 0 ? '#22c988' : '#f55252'), borderWidth: 1.5, borderRadius: 8, borderSkipped: false }] },
+                    options: { responsive: true, animation: { duration: 800 }, plugins: { legend: { display: false }, tooltip: { backgroundColor: d.tooltipBg, borderColor: d.tooltipBorder, borderWidth: 1, titleColor: d.tooltipText, bodyColor: d.tooltipText, cornerRadius: 10 } }, scales: { x: { grid: { color: d.gridColor }, ticks: { color: d.textColor } }, y: { grid: { color: d.gridColor }, ticks: { color: d.textColor } } } }
+                });
+            }, 100);
+        }
+        window.showAnalysis = showAnalysis;
+
+        // ========== AI COACH ==========
+        let aiImageAttachment = null;
+        async function showAI() {
+            if (!currentUser) { showLogin(); return; }
+            aiImageAttachment = null;
+            let aiAccess = await getUserAIAccess(currentUser);
+            let todayCount = getUserTodayCount(currentUser, 'ai_questions');
+            let aiLimit = await getUserLimit(currentUser, 'ai_questions');
+            let limitInfo = aiAccess ? (todayCount >= aiLimit ? `<div class="limit-warning">⚠️ Daily AI limit (${aiLimit}) reached. Resets tomorrow.</div>` : `<div style="color:var(--text-muted);font-size:0.82rem;margin-bottom:12px;">Questions today: ${todayCount}/${aiLimit}</div>`) : '';
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-robot"></i> AI Trading Coach</h2></div>
+                    ${limitInfo}
+                    <div class="chat-container" id="chatContainer">
+                        <div class="ai-message message">
+                            <strong>🤖 AI Coach</strong><br>
+                            Hello! I'm your AI trading coach. Ask me anything about your trades, strategies, or market analysis. I can help you improve your trading performance!
+                        </div>
+                    </div>
+                    <div style="position:relative;">
+                        <div class="chat-input-area">
+                            <input type="text" class="chat-input" id="chatInput" placeholder="Ask about your trades, strategies..." onkeypress="if(event.key==='Enter') sendAIMessage()">
+                            <button class="chat-suggest-btn" onclick="toggleSuggestPopup()" title="Suggestions"><i class="bi bi-lightbulb" style="color:inherit;"></i></button>
+                            <button class="chat-attach-btn" onclick="document.getElementById('chatImageInput').click()" title="Attach image"><i class="bi bi-image" style="color:inherit;"></i></button>
+                            <input type="file" id="chatImageInput" accept="image/*" style="display:none;" onchange="attachChatImage(this)">
+                            <button class="chat-send-btn" onclick="sendAIMessage()" title="Send"><i class="bi bi-send-fill" style="color:white;"></i></button>
+                        </div>
+                        <div id="suggestPopup" class="suggest-popup" style="display:none;">
+                            ${['What is my best performing strategy?', 'Analyze my win rate', 'How can I reduce my losses?', 'What emotions hurt my trading?', 'Best days to trade based on my data?', 'Review my last 5 trades'].map(q => `<div class="suggest-item" onclick="useSuggestion('${q}')">${q}</div>`).join('')}
+                        </div>
+                    </div>
+                    <div id="chatImagePreview" style="margin-top:10px;"></div>
+                </div>
+            `;
+        }
+        window.showAI = showAI;
+
+        function toggleSuggestPopup() {
+            let p = document.getElementById('suggestPopup');
+            p.style.display = p.style.display === 'none' ? 'block' : 'none';
+        }
+        window.toggleSuggestPopup = toggleSuggestPopup;
+
+        function useSuggestion(q) {
+            document.getElementById('chatInput').value = q;
+            document.getElementById('suggestPopup').style.display = 'none';
+        }
+        window.useSuggestion = useSuggestion;
+
+        function attachChatImage(input) {
+            if (!input.files?.[0]) return;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                aiImageAttachment = e.target.result;
+                let preview = document.getElementById('chatImagePreview');
+                preview.innerHTML = `<img src="${aiImageAttachment}" class="chat-image-preview" onclick="aiImageAttachment=null; document.getElementById('chatImagePreview').innerHTML='';" title="Click to remove">`;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+        window.attachChatImage = attachChatImage;
+
+        async function sendAIMessage() {
+            let input = document.getElementById('chatInput');
+            let message = input.value.trim();
+            if (!message && !aiImageAttachment) return;
+            let aiAccess = await getUserAIAccess(currentUser);
+            if (!aiAccess) { showAlert('AI access is disabled for your account.', 'warning'); return; }
+            let todayCount = getUserTodayCount(currentUser, 'ai_questions');
+            let aiLimit = await getUserLimit(currentUser, 'ai_questions');
+            if (todayCount >= aiLimit) { showAlert(`Daily AI limit (${aiLimit}) reached.`, 'warning'); return; }
+            let container = document.getElementById('chatContainer');
+            if (!container) return;
+            let userMsgHtml = `<div class="user-message message">${message}`;
+            if (aiImageAttachment) userMsgHtml += `<br><img src="${aiImageAttachment}" class="chat-image-preview" style="margin-top:8px;">`;
+            userMsgHtml += '</div>';
+            container.innerHTML += userMsgHtml;
+            input.value = '';
+            let thinkingEl = document.createElement('div');
+            thinkingEl.className = 'ai-message message thinking-message';
+            thinkingEl.innerHTML = '<span class="live-dot"></span> Thinking...';
+            container.appendChild(thinkingEl);
+            container.scrollTop = container.scrollHeight;
+            let aiKey = await getAdminAIKey();
+            let aiModel = await getAdminAIModel();
+            let tradeContext = trades.length ? `Recent trades: ${JSON.stringify(trades.slice(-10).map(t => ({ asset: t.asset, direction: t.direction, pnl: t.pnl, strategy: t.strategy, emotion: t.emotion, behavior: t.behavior })))}` : 'No trades recorded yet.';
+            try {
+                let messageContent = [{ type: 'text', text: `You are an expert trading coach. ${tradeContext}\n\nUser: ${message}` }];
+                if (aiImageAttachment) messageContent.push({ type: 'image_url', image_url: { url: aiImageAttachment } });
+                let res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${aiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': window.location.origin, 'X-Title': 'Tradofi' },
+                    body: JSON.stringify({ model: aiModel, messages: [{ role: 'user', content: messageContent }], max_tokens: 1000 })
+                });
+                let data = await res.json();
+                let reply = data.choices?.[0]?.message?.content || 'Sorry, I could not get a response.';
+                thinkingEl.remove();
+                container.innerHTML += `<div class="ai-message message"><strong>🤖 AI Coach</strong><br>${reply.replace(/\n/g, '<br>')}</div>`;
+                incrementUserCount(currentUser, 'ai_questions');
+                aiImageAttachment = null;
+                document.getElementById('chatImagePreview').innerHTML = '';
+            } catch (err) {
+                thinkingEl.remove();
+                container.innerHTML += `<div class="ai-message message" style="color:var(--accent-red);">Error: ${err.message}</div>`;
+            }
+            container.scrollTop = container.scrollHeight;
+        }
+        window.sendAIMessage = sendAIMessage;
+
+        // ========== IMPORT / EXPORT ==========
+        function showImportExport() {
+            if (!currentUser) { showLogin(); return; }
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-arrow-left-right"></i> Import / Export</h2></div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="chart-container" style="text-align:center; padding:32px 20px;">
+                                <i class="bi bi-file-earmark-spreadsheet" style="font-size:3rem; color:var(--accent-cyan); display:block; margin-bottom:12px;"></i>
+                                <h5 style="font-family:'Syne',sans-serif; margin-bottom:16px;">Export CSV</h5>
+                                <button class="btn btn-custom" onclick="exportCSV()"><i class="bi bi-download"></i> Download CSV</button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="chart-container" style="text-align:center; padding:32px 20px;">
+                                <i class="bi bi-file-earmark-pdf" style="font-size:3rem; color:var(--accent-violet); display:block; margin-bottom:12px;"></i>
+                                <h5 style="font-family:'Syne',sans-serif; margin-bottom:16px;">Export PDF</h5>
+                                <button class="btn btn-custom" style="background:linear-gradient(135deg,#9d5cff,#f55252);" onclick="exportPDF()"><i class="bi bi-file-pdf"></i> Download PDF</button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="chart-container" style="text-align:center; padding:32px 20px;">
+                                <i class="bi bi-cloud-upload" style="font-size:3rem; color:var(--accent-green); display:block; margin-bottom:12px;"></i>
+                                <h5 style="font-family:'Syne',sans-serif; margin-bottom:16px;">Import CSV</h5>
+                                <input type="file" id="csvFile" accept=".csv" class="form-control mb-3">
+                                <button class="btn btn-custom" style="background:linear-gradient(135deg,#22c988,#38d9f5);" onclick="importCSV()"><i class="bi bi-upload"></i> Import</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4" style="background:var(--input-bg); border:1px solid var(--input-border); border-radius:14px; padding:16px;">
+                        <h6 style="color:var(--text-secondary); margin-bottom:6px;">CSV Format:</h6>
+                        <code style="color:var(--accent-cyan); font-size:0.8rem;">Date,Asset,Direction,Entry,Exit,Stop Loss,Size,Strategy,Notes,Behavior,Emotion,Setup,Currency,PnL,Status</code>
+                    </div>
+                </div>
+            `;
+        }
+        window.showImportExport = showImportExport;
+
+        function exportCSV() {
+            if (!trades.length) { showAlert('No trades to export', 'warning'); return; }
+            let csv = 'Date,Asset,Direction,Entry,Exit,Stop Loss,Size,Strategy,Notes,Behavior,Emotion,Setup,Currency,PnL,Status\n';
+            trades.forEach(t => csv += `${t.date.toISOString().slice(0, 10)},${t.asset},${t.direction},${t.entry},${t.exit || ''},${t.stop || ''},${t.size},"${t.strategy || ''}","${t.notes || ''}","${t.behavior || ''}","${t.emotion || ''}","${t.setup || ''}",${t.currency},${t.pnl},${t.status || 'closed'}\n`);
+            let blob = new Blob(['\uFEFF' + csv], { type: 'text/csv' });
+            let link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `tradofi_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+            showAlert('CSV exported ✅', 'success');
+        }
+        window.exportCSV = exportCSV;
+
+        async function importCSV() {
+            let file = document.getElementById('csvFile').files[0];
+            if (!file) { showAlert('Select a CSV file first', 'warning'); return; }
+            let reader = new FileReader();
+            reader.onload = async function(e) {
+                let lines = e.target.result.split('\n');
+                let imported = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    let vals = lines[i].split(',');
+                    if (vals.length < 14) continue;
+                    try {
+                        let trade = { entryDate: vals[0] || new Date().toISOString(), date: vals[0] || new Date().toISOString(), asset: vals[1]?.trim() || 'unknown', direction: vals[2]?.trim() || 'Long', entry: parseFloat(vals[3]) || 0, exit: vals[4] ? parseFloat(vals[4]) : null, stop: vals[5] ? parseFloat(vals[5]) : null, size: parseFloat(vals[6]) || 0, strategy: vals[7]?.trim() || '', notes: vals[8]?.trim() || '', behavior: vals[9]?.trim() || '', emotion: vals[10]?.trim() || '', setup: vals[11]?.trim() || '', currency: vals[12]?.trim() || 'USD', pnl: parseFloat(vals[13]) || 0, status: vals[14]?.trim() || 'closed', image: null, exitDate: null };
+                        if (trade.status === 'closed' && trade.exit) {
+                            if (trade.direction === 'Long' && trade.stop && trade.entry > trade.stop) trade.riskReward = (trade.exit - trade.entry) / (trade.entry - trade.stop);
+                            else if (trade.direction === 'Short' && trade.stop && trade.entry < trade.stop) trade.riskReward = (trade.entry - trade.exit) / (trade.stop - trade.entry);
+                            else trade.riskReward = null;
+                        } else trade.riskReward = null;
+                        await saveTradeToFirestore(trade);
+                        imported++;
+                    } catch (err) {}
+                }
+                await loadTrades();
+                showAlert(`${imported} trades imported ✅`, 'success');
+                showTrades();
+            };
+            reader.readAsText(file);
+        }
+        window.importCSV = importCSV;
+
+        function exportPDF() {
+            if (!trades.length) { showAlert('No trades to export', 'warning'); return; }
+            const { jsPDF } = window.jspdf;
+            const pdfdoc = new jsPDF();
+            const pageWidth = pdfdoc.internal.pageSize.getWidth();
+            const margin = 15;
+            let y = 25;
+            pdfdoc.setFontSize(22); pdfdoc.setTextColor(56, 217, 245);
+            pdfdoc.text('Tradofi', margin, y); y += 10;
+            pdfdoc.setTextColor(0); pdfdoc.setFontSize(13); pdfdoc.text('Trading Journal Report', margin, y); y += 8;
+            pdfdoc.setFontSize(11); pdfdoc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, y); y += 6;
+            pdfdoc.text(`User: ${currentUser}`, margin, y); y += 10;
+            let total = trades.length, wins = trades.filter(t => t.pnl > 0).length, losses = trades.filter(t => t.pnl < 0).length;
+            let totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+            pdfdoc.setFontSize(12);
+            pdfdoc.text(`Total Trades: ${total} | Wins: ${wins} | Losses: ${losses}`, margin, y); y += 7;
+            pdfdoc.text(`Win Rate: ${total ? ((wins/total)*100).toFixed(2) : 0}% | Total P&L: ${formatMoney(totalPnl, 'USD')}`, margin, y); y += 14;
+            trades.forEach((trade, idx) => {
+                if (y > 250) { pdfdoc.addPage(); y = 20; }
+                let cardH = 70;
+                if (trade.pnl > 0) pdfdoc.setFillColor(230, 255, 245); else if (trade.pnl < 0) pdfdoc.setFillColor(255, 235, 235); else pdfdoc.setFillColor(245, 248, 255);
+                pdfdoc.roundedRect(margin, y, pageWidth - 2*margin, cardH, 3, 3, 'F');
+                pdfdoc.setTextColor(0); pdfdoc.setFontSize(10);
+                let lx = margin + 5, ly = y + 8;
+                pdfdoc.text(`#${idx+1} ${trade.asset} ${trade.direction}`, lx, ly); ly += 7;
+                pdfdoc.text(`Entry: ${formatMoney(trade.entry, trade.currency)} | Exit: ${trade.exit ? formatMoney(trade.exit, trade.currency) : 'Running'} | Stop: ${trade.stop ? formatMoney(trade.stop, trade.currency) : '-'}`, lx, ly); ly += 7;
+                pdfdoc.text(`P&L: ${formatMoney(trade.pnl, trade.currency)} | Size: ${trade.size} | R/R: ${trade.riskReward ? trade.riskReward.toFixed(2) : '-'}`, lx, ly); ly += 7;
+                pdfdoc.text(`Strategy: ${trade.strategy || '-'} | Emotion: ${trade.emotion || '-'} | Status: ${trade.status}`, lx, ly); ly += 7;
+                if (trade.notes) { let notesText = pdfdoc.splitTextToSize(`Notes: ${trade.notes}`, pageWidth - 2*margin - 10); pdfdoc.text(notesText[0], lx, ly); }
+                pdfdoc.roundedRect(margin, y, pageWidth - 2*margin, cardH, 3, 3, 'S');
+                y += cardH + 8;
+            });
+            pdfdoc.save(`tradofi_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+            showAlert('PDF exported ✅', 'success');
+        }
+        window.exportPDF = exportPDF;
+
+        // ========== INBOX ==========
+        async function showInbox() {
+            if (!currentUser) { showLogin(); return; }
+            document.getElementById('mainContent').innerHTML = `<div class="glass-card fade-in"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-envelope"></i> Inbox</h2></div><div id="inboxList"><p style="color:var(--text-muted);">Loading...</p></div></div>`;
+            try {
+                const q = query(collection(db, 'messages'), where('to', '==', currentUser));
+                const snapshot = await getDocs(q);
+                let msgs = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt || '') - (a.createdAt || ''));
+                let html = msgs.length ? msgs.map(m => `<div class="inbox-item ${m.read ? '' : 'unread'}"><div style="font-weight:600; margin-bottom:4px;">${m.subject || 'No Subject'}</div><div style="color:var(--text-secondary); font-size:0.9rem;">${m.body || ''}</div><div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">${m.createdAt ? new Date(m.createdAt).toLocaleString() : ''}</div></div>`).join('') : '<p style="color:var(--text-muted);text-align:center;padding:40px 0;">No messages yet.</p>';
+                document.getElementById('inboxList').innerHTML = html;
+            } catch (e) { document.getElementById('inboxList').innerHTML = '<p style="color:var(--accent-red);">Error loading messages.</p>'; }
+        }
+        window.showInbox = showInbox;
+
+        // ========== PROFILE ==========
+        async function showProfile() {
+            if (!currentUser) { showLogin(); return; }
+            let userData = await getUserProfile(currentUser) || {};
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-person-circle"></i> Profile</h2></div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div style="margin-bottom:12px;"><span style="color:var(--text-muted); font-size:0.82rem; text-transform:uppercase; letter-spacing:1px;">UID</span><div style="font-family:'JetBrains Mono',monospace; font-size:0.88rem;">${currentUser}</div></div>
+                            <div style="margin-bottom:12px;"><span style="color:var(--text-muted); font-size:0.82rem; text-transform:uppercase; letter-spacing:1px;">Name</span><div style="font-weight:600;">${userData.name || '-'}</div></div>
+                            <div style="margin-bottom:12px;"><span style="color:var(--text-muted); font-size:0.82rem; text-transform:uppercase; letter-spacing:1px;">Email</span><div>${userData.email || '-'}</div></div>
+                            <div style="margin-bottom:20px;"><span style="color:var(--text-muted); font-size:0.82rem; text-transform:uppercase; letter-spacing:1px;">Total Trades</span><div style="font-size:1.5rem; font-weight:700; font-family:'Syne',sans-serif;">${trades.length}</div></div>
+                            <button class="btn" style="background:rgba(245,82,82,0.1); border:1px solid rgba(245,82,82,0.3); color:var(--accent-red); border-radius:20px; padding:10px 20px;" onclick="resetAllTrades()"><i class="bi bi-trash"></i> Clear All Trades</button>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container"><canvas id="profileChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            applyChartDefaults();
+            const d = getChartDefaults();
+            let win = trades.filter(t => t.pnl > 0).length, loss = trades.filter(t => t.pnl < 0).length;
+            new Chart(document.getElementById('profileChart'), {
+                type: 'doughnut',
+                data: { labels: ['Wins', 'Losses'], datasets: [{ data: [win, loss], backgroundColor: ['rgba(34,201,136,0.8)', 'rgba(245,82,82,0.8)'], borderColor: ['#22c988', '#f55252'], borderWidth: 2, hoverOffset: 8 }] },
+                options: { responsive: true, cutout: '65%', plugins: { legend: { labels: { color: d.textColor, padding: 20 } }, tooltip: { backgroundColor: d.tooltipBg, titleColor: d.tooltipText, bodyColor: d.tooltipText, borderColor: d.tooltipBorder, borderWidth: 1, cornerRadius: 10 } } }
+            });
+        }
+        window.showProfile = showProfile;
+
+        // ========== AI SETTINGS ==========
+        async function showAISettings() {
+            if (currentUser !== ADMIN_UID) { showAlert('Admin only', 'warning'); return; }
+            let key = await getAdminAIKey();
+            let model = await getAdminAIModel();
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in" style="max-width:600px; margin:0 auto;">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-gear"></i> AI Settings (Admin)</h2></div>
+                    <div class="mb-3"><label class="form-label">OpenRouter API Key</label><input type="text" class="form-control" id="aiKeyInput" value="${key}" placeholder="sk-or-..."></div>
+                    <div class="mb-3"><label class="form-label">Model</label><input type="text" class="form-control" id="aiModelInput" value="${model}" placeholder="openai/gpt-4o"></div>
+                    <button class="btn btn-custom" onclick="saveAISettings()"><i class="bi bi-check2"></i> Save</button>
+                </div>
+            `;
+        }
+        window.showAISettings = showAISettings;
+
+        async function saveAISettings() {
+            let key = document.getElementById('aiKeyInput').value.trim();
+            let model = document.getElementById('aiModelInput').value.trim();
+            await setDoc(doc(db, 'admin', 'ai'), { apiKey: key, model: model }, { merge: true });
+            showAlert('AI settings saved ✅', 'success');
+        }
+        window.saveAISettings = saveAISettings;
+
+        // ========== AUTH STATE LISTENER ==========
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user.uid;
+                await loadTrades(); await loadWatchlist();
+                updateNav();
+                if (currentView.name !== showDashboard) showDashboard();
+            } else {
+                if (messagesUnsubscribe) messagesUnsubscribe();
+                currentUser = null; trades = []; watchlist = [];
+                updateNav(); showLogin();
+            }
+        });
+
+        // ========== DAILY LOSS LIMIT ==========
+        async function showDailyLossLimit() {
+            if (!currentUser) { showLogin(); return; }
+            let currentLimitUSD = await getDailyLossLimitUSD();
+            let currentDisplay = currency === 'USD' ? currentLimitUSD : currentLimitUSD * (await getExchangeRate());
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in" style="max-width:560px; margin:0 auto;">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-exclamation-octagon"></i> Daily Loss Limit</h2></div>
+                    <p style="color:var(--text-muted);">Set a maximum loss per day (in ${currency}) to receive warnings.</p>
+                    <form onsubmit="setDailyLossLimit(event)">
+                        <div class="mb-3"><label class="form-label">💰 Daily Loss Limit (${currency})</label><input type="number" step="0.01" class="form-control" id="dailyLossLimit" value="${currentDisplay.toFixed(2)}" required></div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-custom">Save Limit</button>
+                            <button type="button" class="btn btn-outline-custom" onclick="goBack()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+        window.showDailyLossLimit = showDailyLossLimit;
+
+        async function setDailyLossLimit(e) {
+            e.preventDefault();
+            let input = parseFloat(document.getElementById('dailyLossLimit').value);
+            if (isNaN(input) || input < 0) { showAlert('Enter a valid amount', 'warning'); return; }
+            let rate = await getExchangeRate();
+            let limitUSD = currency === 'USD' ? input : input / rate;
+            await setDailyLossLimitUSD(limitUSD);
+            showAlert('Daily loss limit updated ✅', 'success');
+            goBack();
+        }
+        window.setDailyLossLimit = setDailyLossLimit;
+
+        // ========== EXCHANGE RATE ==========
+        async function showExchangeRate() {
+            if (!currentUser) { showLogin(); return; }
+            let currentRate = await getExchangeRate();
+            document.getElementById('mainContent').innerHTML = `
+                <div class="glass-card fade-in" style="max-width:560px; margin:0 auto;">
+                    <div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-arrow-left-right"></i> Set USD → INR Rate</h2></div>
+                    <p style="color:var(--text-muted);">This rate is used when converting USD values to INR.</p>
+                    <form onsubmit="updateExchangeRate(event)">
+                        <div class="mb-3"><label class="form-label">💰 1 USD =</label><input type="number" step="0.01" class="form-control" id="exchangeRateInput" value="${currentRate}" required></div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-custom">Save Rate</button>
+                            <button type="button" class="btn btn-outline-custom" onclick="goBack()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+        window.showExchangeRate = showExchangeRate;
+
+        async function updateExchangeRate(e) {
+            e.preventDefault();
+            let newRate = parseFloat(document.getElementById('exchangeRateInput').value);
+            if (isNaN(newRate) || newRate <= 0) { showAlert('Please enter a valid positive number', 'warning'); return; }
+            await setExchangeRate(newRate);
+            showAlert('Exchange rate updated ✅', 'success');
+            goBack();
+        }
+        window.updateExchangeRate = updateExchangeRate;
+
+        // ========== INIT ==========
+        setTimeout(() => hideSplash(), 2000);
+        (function init() { updateNav(); })();
+    </script>
+</body>
+</html>
