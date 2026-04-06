@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradofi · Trading Journal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* ========== STYLES (unchanged, working fine) ========== */
+        :root {
+            --bg-gradient: linear-gradient(145deg, #0f0c1f, #1b1b3a, #2a1e3a);
+            --text-primary: #f0f4ff;
+            --text-secondary: #cbd5e1;
+            --label-color: #f0f4ff;
+            --placeholder-color: #e0e8ff;
+            --card-bg: rgba(15, 20, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(0, 0, 0, 0.4);
+            --input-border: rgba(255, 255, 255, 0.15);
+            --link-color: #00ffff;
+            --muted-text: #b0c0d0;
+            --icon-color: #00ffff;
+            --btn-gradient: linear-gradient(135deg, #00ffff, #aa00ff);
+            --ai-message-bg: rgba(0, 255, 255, 0.1);
+            --user-message-bg: rgba(255, 255, 255, 0.1);
+            --up: #00ff88;
+            --down: #ff3333;
+            --nse-color: #ff9933;
+            --tv-color: #2962ff;
+        }
+        body.light-mode {
+            --bg-gradient: linear-gradient(145deg, #f5f7fa, #ffffff, #e9ecf2);
+            --text-primary: #1e293b;
+            --text-secondary: #334155;
+            --label-color: #1e293b;
+            --placeholder-color: #6b7280;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-border: rgba(0, 0, 0, 0.05);
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --input-border: #ced4da;
+            --link-color: #2563eb;
+            --muted-text: #4b5563;
+            --icon-color: #2563eb;
+            --btn-gradient: linear-gradient(135deg, #2563eb, #7c3aed);
+            --ai-message-bg: rgba(0, 100, 255, 0.1);
+            --user-message-bg: rgba(0, 0, 0, 0.05);
+            --up: #00a86b;
+            --down: #e63946;
+            --nse-color: #e65c00;
+            --tv-color: #2563eb;
+        }
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Poppins', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            min-height: 100vh;
+            padding-top: 130px;
+            transition: background 0.3s ease, color 0.2s ease;
+            overflow-x: hidden;
+        }
+        #bgCanvas { position: fixed; top:0; left:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+        #splashScreen { position: fixed; top:0; left:0; width:100%; height:100%; background:radial-gradient(circle at center, #1a1a3a 0%, #0f0c1f 100%); backdrop-filter:blur(10px); z-index:9999; display:flex; align-items:center; justify-content:center; transition:opacity 1.2s cubic-bezier(0.4,0,0.2,1); opacity:1; pointer-events:all; }
+        #splashScreen.fade-out { opacity:0; pointer-events:none; }
+        .splash-content { text-align:center; animation:zoomIn 1s ease-out; }
+        .splash-icon { font-size:7rem; color:var(--link-color); margin-bottom:20px; filter:drop-shadow(0 0 30px var(--link-color)); animation:pulseGlow 2s infinite; }
+        .splash-logo { font-family:'Orbitron',sans-serif; font-weight:800; font-size:4.5rem; line-height:1.1; letter-spacing:8px; text-transform:uppercase; background:linear-gradient(135deg,#fff 0%,#00ffff 50%,#aa00ff 100%); -webkit-background-clip:text; background-clip:text; color:transparent; animation:slideUp 0.8s ease-out forwards; opacity:0; transform:translateY(30px); }
+        .splash-sub { font-size:1.4rem; color:var(--text-secondary); margin-top:30px; opacity:0; letter-spacing:4px; animation:fadeIn 1s ease-out 0.9s forwards; text-shadow:0 0 15px rgba(0,255,255,0.3); }
+        @keyframes slideUp { to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeIn { to { opacity:0.9; } }
+        @keyframes zoomIn { 0% { transform:scale(0.9); opacity:0; } 100% { transform:scale(1); opacity:1; } }
+        @keyframes pulseGlow { 0% { filter:drop-shadow(0 0 20px var(--link-color)); } 50% { filter:drop-shadow(0 0 50px var(--link-color)); } 100% { filter:drop-shadow(0 0 20px var(--link-color)); } }
+        .navbar-double { position:fixed; top:0; left:0; right:0; z-index:1030; background:var(--card-bg); backdrop-filter:blur(12px) saturate(180%); border-bottom:1px solid var(--card-border); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
+        .navbar-double .navbar-brand { font-weight:700; background:var(--btn-gradient); -webkit-background-clip:text; background-clip:text; color:transparent !important; font-size:1rem; padding:0.2rem 0; display:flex; align-items:center; gap:8px; line-height:1.2; }
+        .navbar-double .nav-link { color:var(--text-primary) !important; font-weight:500; transition:0.2s; }
+        .navbar-double .nav-link:hover { color:var(--link-color) !important; }
+        .navbar-double .top-row { background:transparent; border-bottom:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; }
+        .glass-card { background:var(--card-bg); backdrop-filter:blur(12px) saturate(180%); border:1px solid var(--card-border); border-radius:32px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); padding:28px; color:var(--text-primary); }
+        .auth-card { max-width:460px; margin:60px auto; background:var(--card-bg); backdrop-filter:blur(20px); border:1px solid var(--card-border); border-radius:40px; padding:40px; box-shadow:0 30px 60px rgba(0,0,0,0.2); }
+        .metric-card { background:rgba(0,255,255,0.05); backdrop-filter:blur(8px); border:1px solid var(--card-border); border-radius:28px; padding:24px 16px; color:var(--text-primary); text-align:center; transition:all 0.25s; height:100%; position:relative; }
+        .metric-value { font-size:2.2rem; font-weight:600; line-height:1.2; }
+        .metric-label { font-size:1rem; opacity:0.9; text-transform:uppercase; letter-spacing:1px; }
+        .edit-capital { position:absolute; top:10px; right:10px; cursor:pointer; color:var(--link-color); font-size:1.2rem; opacity:0.7; }
+        .trade-card { background:var(--card-bg); backdrop-filter:blur(8px); border:1px solid var(--card-border); border-radius:24px; padding:20px; margin-bottom:20px; transition:all 0.2s; }
+        .trade-card.win-row { background:rgba(0,255,0,0.05); }
+        .trade-card.loss-row { background:rgba(255,0,0,0.05); }
+        .btn-custom { background:var(--btn-gradient); border:none; padding:12px 28px; border-radius:40px; font-weight:600; color:white; transition:all 0.2s; box-shadow:0 10px 20px -8px rgba(0,255,255,0.3); }
+        .btn-outline-custom { background:transparent; border:2px solid var(--link-color); color:var(--link-color); padding:10px 24px; border-radius:40px; font-weight:600; }
+        .back-btn { display:inline-flex; align-items:center; gap:8px; background:rgba(0,255,255,0.1); backdrop-filter:blur(8px); border:1px solid var(--card-border); border-radius:40px; padding:10px 20px; color:var(--link-color); font-size:1rem; font-weight:500; cursor:pointer; transition:all 0.2s; margin-right:20px; }
+        .form-control, .form-select { background:var(--input-bg); border:1px solid var(--input-border); border-radius:20px; padding:14px 18px; color:var(--text-primary); font-size:1rem; }
+        .form-control:focus, .form-select:focus { background:var(--input-bg); border-color:var(--link-color); box-shadow:0 0 0 3px rgba(0,255,255,0.2); }
+        .watchlist-table { width:100%; border-collapse:collapse; }
+        .watchlist-table th { text-align:left; color:var(--text-secondary); font-size:0.8rem; padding:12px 8px; border-bottom:1px solid var(--card-border); }
+        .watchlist-table td { padding:12px 8px; border-bottom:1px solid var(--card-border); }
+        .remove-btn { background:transparent; border:none; color:var(--muted-text); font-size:1.4rem; cursor:pointer; }
+        .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(5px); display:none; justify-content:center; align-items:center; z-index:2000; }
+        .modal-content { background:var(--card-bg); border:1px solid var(--link-color); border-radius:32px; padding:28px; width:90%; max-width:450px; }
+        .chat-container { height:500px; overflow-y:auto; padding:20px; background:rgba(0,0,0,0.2); border-radius:24px; margin-bottom:20px; display:flex; flex-direction:column; scroll-behavior:smooth; }
+        .message { max-width:80%; margin-bottom:15px; padding:14px 20px; border-radius:24px; word-wrap:break-word; }
+        .user-message { background:linear-gradient(145deg,#00aaff30,#0066ff30); border:1px solid var(--link-color); align-self:flex-end; margin-left:auto; }
+        .ai-message { background:linear-gradient(145deg,#ff66cc30,#aa00ff30); border:1px solid var(--card-border); align-self:flex-start; }
+        .chat-input-area { display:flex; gap:10px; background:var(--card-bg); border-radius:60px; padding:6px 6px 6px 20px; border:1px solid var(--card-border); }
+        .chat-send-btn { background:#28a745; border:none; border-radius:50%; width:48px; height:48px; display:flex; align-items:center; justify-content:center; color:white; cursor:pointer; }
+        .chat-attach-btn, .chat-suggest-btn { background:var(--card-bg); border:1px solid var(--link-color); border-radius:50%; width:48px; height:48px; display:flex; align-items:center; justify-content:center; color:var(--link-color); cursor:pointer; }
+        .suggest-popup { position:absolute; bottom:70px; right:70px; width:280px; max-height:400px; overflow-y:auto; background:var(--card-bg); backdrop-filter:blur(16px); border:1px solid var(--link-color); border-radius:20px; padding:15px; z-index:1060; }
+        .suggest-item { padding:12px 15px; margin:5px 0; border-radius:12px; cursor:pointer; transition:0.2s; }
+        .suggest-item:hover { background:var(--link-color); color:#000; }
+        .ticker-container { background:var(--card-bg); backdrop-filter:blur(12px); border:1px solid var(--card-border); border-radius:28px; padding:12px 20px; margin-bottom:30px; }
+        .nse-header { width:100%; height:48px; display:flex; align-items:center; overflow:hidden; border-bottom:2px solid var(--nse-color); margin-bottom:8px; }
+        .nse-marquee { display:inline-block; white-space:nowrap; animation:moveTicker 45s linear infinite; }
+        .nse-item { display:inline-block; padding:0 35px; font-weight:700; font-size:1.1rem; }
+        .price-up { color:var(--up); margin-left:8px; }
+        @keyframes moveTicker { 0% { transform:translateX(0%); } 100% { transform:translateX(-50%); } }
+        .calendar-popup { position:absolute; background:var(--card-bg); backdrop-filter:blur(16px); border:1px solid var(--link-color); border-radius:30px; padding:25px; z-index:1050; width:320px; }
+        .calendar-day { padding:10px 5px; border-radius:16px; cursor:pointer; text-align:center; }
+        .calendar-day.trade-day { background:rgba(0,255,255,0.15); color:var(--link-color); font-weight:700; }
+        .filter-row { display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+        @media (max-width:768px) { body { padding-top:110px; } }
+    </style>
+</head>
+<body>
+    <canvas id="bgCanvas"></canvas>
+    <div id="splashScreen" onclick="hideSplash()"><div class="splash-content"><i class="bi bi-graph-up-arrow splash-icon"></i><div class="splash-logo"><div>TRADING</div><div>YOUR</div><div>TRACK</div><div>JOURNEY</div></div><div class="splash-sub">— Tradofi —</div></div></div>
+    <div class="modal-overlay" id="watchlistModal"><div class="modal-content"><h3><i class="bi bi-plus-circle"></i> Add Symbol</h3><div class="guide-box"><b>Common Symbols:</b><br>• Nifty 50: ^NSEI<br>• Bank Nifty: ^NSEBANK<br>• Stocks: RELIANCE.NS, SBIN.NS<br>• Crypto: BTC-USD, ETH-USD</div><input type="text" class="form-control" id="watchlistSymbolInput" placeholder="Enter Symbol"><button class="btn btn-custom w-100 mt-3" onclick="addWatchlistItemFromModal()">Add to List</button><a class="cancel-link" onclick="closeWatchlistModal()">Cancel</a></div></div>
+    <div class="image-modal-overlay" id="imageModal" onclick="closeImageModal()"><div class="image-modal-content"><img id="modalImage" src=""></div></div>
+    <div class="navbar-double"><div class="top-row"><div class="container d-flex justify-content-between align-items-center"><a class="navbar-brand" href="#"><i class="bi bi-graph-up-arrow" style="font-size:1.5rem;"></i><span style="font-size:1rem; font-weight:700;"> Tradofi — Track Your Trading Journey</span></a><div class="fullscreen-icon" onclick="toggleFullscreen()"><i class="bi bi-arrows-fullscreen"></i></div></div></div><div class="bottom-row"><div class="container"><nav class="navbar navbar-expand-lg p-0"><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="navbarNav"><ul class="navbar-nav me-auto mb-2 mb-lg-0" id="navLinks"></ul></div></nav></div></div></div>
+    <div class="container-fluid" id="mainContent" style="padding-left:30px;padding-right:30px;"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, setDoc, getDoc, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const firebaseConfig = { apiKey: "AIzaSyAb9plOM2gNC22NZqenDsTeqSFrZP4ZtQE", authDomain: "login-e28bf.firebaseapp.com", projectId: "login-e28bf", storageBucket: "login-e28bf.firebasestorage.app", messagingSenderId: "516399855669", appId: "1:516399855669:web:35e553d29e4b39fb02997c", measurementId: "G-38J3J7YDH0" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+        
+        let currentUser = null, trades = [], watchlist = [], currency = localStorage.getItem('preferred_currency') || 'USD';
+        let currentView = { name: showLogin, params: [] }, historyStack = [], messagesUnsubscribe = null;
+        const ADMIN_UID = 'rzc2yTtchrThPICp4yfZ29qPtjj1';
+        let nseSymbols = ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS'];
+        let globalSymbols = ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X'];
+        
+        // Helper functions
+        function showAlert(m, t = 'info') { let d = document.createElement('div'); d.className = `alert alert-${t} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`; d.style.zIndex = 9999; d.style.minWidth = '300px'; d.style.background = 'var(--card-bg)'; d.style.color = 'var(--text-primary)'; d.style.border = '1px solid var(--link-color)'; d.innerHTML = `${m} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`; document.body.appendChild(d); setTimeout(() => d.remove(), 3000); }
+        function formatMoney(amount, curr) { if (amount == null) return '-'; return (curr === 'INR' ? '₹' : '$') + amount.toFixed(2); }
+        function formatLocal(amount) { return currency === 'INR' ? '₹' + amount.toFixed(2) : '$' + amount.toFixed(2); }
+        function setCurrency(c) { currency = c; localStorage.setItem('preferred_currency', c); if (currentView.name === showDashboard) showDashboard(); else if (currentView.name === showTrades) showTrades(); updateNav(); }
+        window.setCurrency = setCurrency;
+        function toggleTheme() { document.body.classList.toggle('light-mode'); localStorage.setItem('selected_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark'); if (currentView.name === showDashboard) showDashboard(); else if (currentView.name === showTrades) showTrades(); updateNav(); }
+        window.toggleTheme = toggleTheme;
+        function navigateTo(fn, params) { if (currentView.name !== showLogin) historyStack.push({ name: currentView.name, params: currentView.params }); currentView = { name: fn, params: params }; fn(...params); }
+        window.navigateTo = navigateTo;
+        function goBack() { if (historyStack.length) { let prev = historyStack.pop(); currentView = { name: prev.name, params: prev.params }; prev.name(...prev.params); } else { currentUser ? showDashboard() : showLogin(); } }
+        window.goBack = goBack;
+        
+        // Firestore admin settings with array fallback
+        async function getAdminTickerIndian() { try { const docSnap = await getDoc(doc(db, 'admin', 'ticker')); let arr = docSnap.exists() ? docSnap.data().indian : null; return Array.isArray(arr) ? arr : ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS']; } catch(e) { return ['^NSEI', '^NSEBANK', 'RELIANCE.NS', 'TATASTEEL.NS', 'HDFCBANK.NS', 'SBIN.NS']; } }
+        async function getAdminTickerGlobal() { try { const docSnap = await getDoc(doc(db, 'admin', 'ticker')); let arr = docSnap.exists() ? docSnap.data().global : null; return Array.isArray(arr) ? arr : ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X']; } catch(e) { return ['BTC-USD', 'ETH-USD', 'GC=F', 'EURUSD=X', 'GBPUSD=X']; } }
+        async function getAdminAIKey() { try { const docSnap = await getDoc(doc(db, 'admin', 'ai')); return docSnap.exists() ? docSnap.data().apiKey || '' : ''; } catch { return ''; } }
+        async function getAdminAIModel() { try { const docSnap = await getDoc(doc(db, 'admin', 'ai')); return docSnap.exists() ? docSnap.data().model || 'openai/gpt-4o' : 'openai/gpt-4o'; } catch { return 'openai/gpt-4o'; } }
+        
+        // User limits
+        async function getUserLimit(username, type) { try { const docSnap = await getDoc(doc(db, 'limits', username)); if (docSnap.exists()) { const data = docSnap.data(); if (type === 'trades') return data.tradeLimit || 5; if (type === 'images') return data.imageLimit || 1; if (type === 'ai_questions') return data.aiLimit || 5; } } catch(e) {} return 5; }
+        function getUserTodayCount(username, type) { let today = new Date().toISOString().slice(0,10); let val = localStorage.getItem(`count_${type}_${username}_${today}`); return val ? parseInt(val) : 0; }
+        function incrementUserCount(username, type) { let today = new Date().toISOString().slice(0,10); let key = `count_${type}_${username}_${today}`; localStorage.setItem(key, (parseInt(localStorage.getItem(key)||'0')+1).toString()); }
+        
+        // Capital & exchange rate
+        async function getCapitalUSD() { try { const docSnap = await getDoc(doc(db, 'users', currentUser)); return docSnap.exists() && docSnap.data().capital ? docSnap.data().capital : 0; } catch { return 0; } }
+        async function setCapitalUSD(amount) { await setDoc(doc(db, 'users', currentUser), { capital: amount }, { merge: true }); }
+        async function getExchangeRate() { try { const docSnap = await getDoc(doc(db, 'users', currentUser)); return docSnap.exists() && docSnap.data().exchangeRate ? docSnap.data().exchangeRate : 90; } catch { return 90; } }
+        async function getDailyLossLimitUSD() { try { const docSnap = await getDoc(doc(db, 'users', currentUser)); return docSnap.exists() && docSnap.data().dailyLossLimit ? docSnap.data().dailyLossLimit : 0; } catch { return 0; } }
+        
+        // Trades CRUD
+        async function loadTrades() { if (!currentUser) return []; const q = query(collection(db, 'trades'), where('userId', '==', currentUser)); const snapshot = await getDocs(q); trades = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: doc.data().date ? new Date(doc.data().date) : new Date(), entryDate: doc.data().entryDate ? new Date(doc.data().entryDate) : null, exitDate: doc.data().exitDate ? new Date(doc.data().exitDate) : null })); return trades; }
+        async function saveTradeToFirestore(data) { const docRef = await addDoc(collection(db, 'trades'), { ...data, userId: currentUser, createdAt: new Date().toISOString() }); return docRef.id; }
+        async function updateTradeInFirestore(id, data) { await updateDoc(doc(db, 'trades', id), data); }
+        async function deleteTradeFromFirestore(id) { await deleteDoc(doc(db, 'trades', id)); }
+        
+        // Watchlist
+        async function loadWatchlist() { if (!currentUser) return []; const q = query(collection(db, 'watchlist'), where('userId', '==', currentUser)); const snapshot = await getDocs(q); watchlist = snapshot.docs.map(doc => ({ id: doc.id, symbol: doc.data().symbol, lastPrice: null, prevClose: null, currency: null })); return watchlist; }
+        async function addToWatchlist(symbol) { await addDoc(collection(db, 'watchlist'), { symbol, userId: currentUser, addedAt: new Date().toISOString() }); await loadWatchlist(); }
+        async function removeFromWatchlist(symbol) { const q = query(collection(db, 'watchlist'), where('userId', '==', currentUser), where('symbol', '==', symbol)); const snapshot = await getDocs(q); snapshot.forEach(async (d) => await deleteDoc(d.ref)); await loadWatchlist(); }
+        
+        // Safe quote fetch with corsproxy.io (more reliable)
+        async function fetchQuoteDetails(symbol) {
+            if (!symbol) return null;
+            try {
+                const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`;
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                const res = await fetch(proxyUrl, { headers: { 'Origin': window.location.origin } });
+                if (!res.ok) return null;
+                const data = await res.json();
+                const result = data.chart?.result?.[0];
+                if (!result) return null;
+                const meta = result.meta;
+                return { price: meta.regularMarketPrice, previousClose: meta.previousClose, currency: meta.currency || 'USD' };
+            } catch(e) { return null; }
+        }
+        
+        // Update ticker safely
+        async function updateNseTicker() {
+            const tape = document.getElementById('nseTape');
+            if (!tape) return;
+            let html = "";
+            for (let s of nseSymbols) {
+                let quote = await fetchQuoteDetails(s);
+                if (quote && typeof quote.price === 'number' && typeof quote.previousClose === 'number') {
+                    let change = quote.price - quote.previousClose;
+                    let changePercent = (change / quote.previousClose) * 100;
+                    let sign = change >= 0 ? '+' : '';
+                    html += `<span class="nse-item"><span style="color:var(--nse-color)">${s}</span> <span class="price-up">${quote.currency === 'INR' ? '₹' : '$'}${quote.price.toLocaleString()}</span> <span class="${change >= 0 ? 'price-up' : 'text-danger'}">${sign}${changePercent.toFixed(2)}%</span></span>`;
+                } else {
+                    html += `<span class="nse-item"><span style="color:var(--nse-color)">${s}</span> <span class="text-muted">N/A</span></span>`;
+                }
+            }
+            tape.innerHTML = html + html;
+        }
+        
+        // Dashboard
+        async function showDashboard() {
+            if (!currentUser) { showLogin(); return; }
+            await loadTrades();
+            updateNseTicker();
+            let totalTrades = trades.length, wins = trades.filter(t=>t.pnl>0).length, losses = trades.filter(t=>t.pnl<0).length;
+            let winRate = totalTrades ? ((wins/totalTrades)*100).toFixed(2) : 0;
+            let totalPnl = trades.reduce((s,t)=>s+(t.pnl-(t.commission||0)),0);
+            let avgWin = wins ? trades.filter(t=>t.pnl>0).reduce((s,t)=>s+t.pnl,0)/wins : 0;
+            let avgLoss = losses ? trades.filter(t=>t.pnl<0).reduce((s,t)=>s+t.pnl,0)/losses : 0;
+            let capUSD = await getCapitalUSD(), rate = await getExchangeRate();
+            let capDisplay = currency === 'USD' ? capUSD : capUSD * rate;
+            let monthlyData = {}; trades.forEach(t=>{ let m = t.date.toISOString().slice(0,7); monthlyData[m] = (monthlyData[m]||0)+t.pnl; });
+            let months = Object.keys(monthlyData).sort(), monthlyPnL = months.map(m=>monthlyData[m]);
+            let html = `<div class="fade-in"><div class="ticker-container"><div class="nse-header"><div class="nse-marquee" id="nseTape">Loading market...</div></div><div id="tvWidgetContainer" class="tradingview-widget-container" style="height:80px;"></div></div><h2 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h2><div class="row g-4 mb-4"><div class="col-md-3"><div class="metric-card"><div class="metric-value">${formatMoney(totalPnl, currency)}</div><div class="metric-label">Total P&L</div></div></div><div class="col-md-3"><div class="metric-card"><div class="metric-value">${winRate}%</div><div class="metric-label">Win Rate</div></div></div><div class="col-md-3"><div class="metric-card"><div class="metric-value">${formatMoney(avgWin, currency)}</div><div class="metric-label">Avg Win</div></div></div><div class="col-md-3"><div class="metric-card"><div class="metric-value">${formatMoney(avgLoss, currency)}</div><div class="metric-label">Avg Loss</div></div></div><div class="col-md-3"><div class="metric-card" onclick="promptSetCapital()" style="cursor:pointer;"><div class="metric-value">${formatMoney(capDisplay, currency)}</div><div class="metric-label">Capital</div><i class="bi bi-pencil-square edit-capital"></i></div></div></div><div class="row"><div class="col-md-6"><canvas id="monthlyChart"></canvas></div><div class="col-md-6"><canvas id="winLossChart"></canvas></div></div></div>`;
+            document.getElementById('mainContent').innerHTML = html;
+            const tvContainer = document.getElementById('tvWidgetContainer');
+            if (tvContainer && Array.isArray(globalSymbols) && globalSymbols.length) {
+                tvContainer.innerHTML = '';
+                const widgetDiv = document.createElement('div'); widgetDiv.className = 'tradingview-widget-container__widget';
+                const script = document.createElement('script'); script.type = 'text/javascript'; script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js'; script.async = true;
+                script.innerHTML = JSON.stringify({ "symbols": globalSymbols.map(s => ({ proName: s, title: s })), "showSymbolLogo": true, "colorTheme": document.body.classList.contains('light-mode') ? "light" : "dark", "isTransparent": true, "displayMode": "adaptive", "locale": "in" });
+                tvContainer.appendChild(widgetDiv); widgetDiv.appendChild(script);
+            }
+            setTimeout(() => {
+                new Chart(document.getElementById('monthlyChart'), { type: 'bar', data: { labels: months, datasets: [{ label: `Monthly P&L (${currency})`, data: monthlyPnL.map(v=>currency==='INR'?v*rate:v), backgroundColor: monthlyPnL.map(v=>v>=0?'#28a745':'#dc3545') }] } });
+                new Chart(document.getElementById('winLossChart'), { type: 'doughnut', data: { labels: ['Wins','Losses'], datasets: [{ data: [wins,losses], backgroundColor: ['#28a745','#dc3545'] }] } });
+            }, 100);
+        }
+        window.showDashboard = showDashboard;
+        
+        // Prompt capital
+        window.promptSetCapital = async function() { let cur = await getCapitalUSD(), rate = await getExchangeRate(), disp = currency === 'USD' ? cur : cur*rate; let val = prompt(`Enter capital (${currency}):`, disp.toFixed(2)); if(val && !isNaN(parseFloat(val))) { let newUSD = currency === 'USD' ? parseFloat(val) : parseFloat(val)/rate; await setCapitalUSD(newUSD); showDashboard(); } };
+        
+        // Trades page (simplified)
+        function showTrades() { if(!currentUser){showLogin();return;} let filtered = [...trades].sort((a,b)=>b.date-a.date); document.getElementById('mainContent').innerHTML = `<div class="glass-card"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2><i class="bi bi-list-ul"></i> Trades</h2><button class="btn btn-custom ms-auto" onclick="navigateTo(showAddTrade,[])">+ New Trade</button></div><div id="tradesContainer" class="row g-4 mt-2">${renderTradeCards(filtered)}</div></div>`; }
+        window.showTrades = showTrades;
+        function renderTradeCards(tradesArray) { if(!tradesArray.length) return '<p class="text-center text-muted">No trades.</p>'; return tradesArray.map(t=>`<div class="col-md-4"><div class="trade-card ${t.pnl>0?'win-row':'loss-row'}"><div><strong>${t.asset}</strong> ${t.direction}</div><div>Entry: ${formatMoney(t.entry,t.currency)}</div><div>Exit: ${t.exit?formatMoney(t.exit,t.currency):'Open'}</div><div>P&L: ${t.status==='open'?'Unrealized':formatMoney(t.pnl,t.currency)}</div><div class="actions mt-2"><button class="btn btn-sm btn-outline-primary" onclick="editTrade('${t.id}')">Edit</button> <button class="btn btn-sm btn-outline-danger" onclick="deleteTrade('${t.id}')">Delete</button></div></div></div>`).join(''); }
+        window.editTrade = (id)=>navigateTo(showAddTrade, [id]);
+        window.deleteTrade = async(id)=>{ if(confirm('Delete?')){ await deleteTradeFromFirestore(id); await loadTrades(); showTrades(); showAlert('Deleted','info'); } };
+        
+        function showAddTrade(tradeId=null) { if(!currentUser){showLogin();return;} let trade = tradeId?trades.find(t=>t.id===tradeId):null; document.getElementById('mainContent').innerHTML = `<div class="glass-card"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2>${tradeId?'Edit':'New'} Trade</h2></div><form onsubmit="saveTrade(event,'${tradeId||''}')"><div class="row"><div class="col-md-6"><label>Entry Date</label><input type="datetime-local" id="entryDate" class="form-control" value="${trade?.entryDate?new Date(trade.entryDate).toISOString().slice(0,16):new Date().toISOString().slice(0,16)}" required></div><div class="col-md-6"><label>Exit Date</label><input type="datetime-local" id="exitDate" class="form-control" value="${trade?.exitDate?new Date(trade.exitDate).toISOString().slice(0,16):''}"></div><div class="col-md-6"><label>Asset</label><input type="text" id="asset" class="form-control" value="${trade?.asset||''}" required></div><div class="col-md-4"><label>Direction</label><select id="direction" class="form-select"><option value="Long">Long</option><option value="Short">Short</option></select></div><div class="col-md-4"><label>Entry Price</label><input type="number" step="0.00001" id="entry" class="form-control" value="${trade?.entry||''}" required></div><div class="col-md-4"><label>Exit Price</label><input type="number" step="0.00001" id="exit" class="form-control" value="${trade?.exit||''}"></div><div class="col-md-4"><label>Stop Loss</label><input type="number" step="0.00001" id="stop" class="form-control" value="${trade?.stop||''}"></div><div class="col-md-4"><label>Size</label><input type="number" step="0.01" id="size" class="form-control" value="${trade?.size||''}" required></div><div class="col-md-4"><label>Status</label><select id="status" class="form-select"><option value="closed">Closed</option><option value="open">Open</option></select></div></div><button type="submit" class="btn btn-custom mt-3">Save</button></form></div>`; }
+        window.saveTrade = async(e, tradeId)=>{ e.preventDefault(); let data = { entryDate: document.getElementById('entryDate').value, exitDate: document.getElementById('exitDate').value||null, asset: document.getElementById('asset').value, direction: document.getElementById('direction').value, entry: parseFloat(document.getElementById('entry').value), exit: parseFloat(document.getElementById('exit').value)||null, stop: parseFloat(document.getElementById('stop').value)||null, size: parseFloat(document.getElementById('size').value), status: document.getElementById('status').value, currency, pnl: 0 }; if(data.status==='closed' && data.exit) { if(data.direction==='Long') data.pnl = (data.exit-data.entry)*data.size; else data.pnl = (data.entry-data.exit)*data.size; } if(tradeId) await updateTradeInFirestore(tradeId, data); else await saveTradeToFirestore(data); await loadTrades(); goBack(); showAlert('Trade saved','success'); };
+        
+        // Live Chat (fixed index issue: removed composite query)
+        async function getOrCreateChatId(userId, adminId) { let ids=[userId,adminId].sort(); let chatId=`${ids[0]}_${ids[1]}`; let ref=doc(db,'chats',chatId); if(!(await getDoc(ref)).exists()) await setDoc(ref,{participants:[userId,adminId],createdAt:new Date().toISOString(),lastMessage:''}); return chatId; }
+        async function sendMessage(chatId, text) { if(!text.trim()) return; await addDoc(collection(db,'chats',chatId,'messages'),{text:text.trim(),senderId:currentUser,timestamp:new Date().toISOString(),read:false}); await updateDoc(doc(db,'chats',chatId),{lastMessage:text.trim(),lastUpdated:new Date().toISOString()}); }
+        async function markMessagesRead(chatId, uid) { const q = query(collection(db,'chats',chatId,'messages'), where('read','==',false)); const snap = await getDocs(q); snap.forEach(async d=>{ if(d.data().senderId !== uid) await updateDoc(d.ref,{read:true}); }); }
+        function loadMessages(chatId) { if(messagesUnsubscribe) messagesUnsubscribe(); const q = query(collection(db,'chats',chatId,'messages'), orderBy('timestamp','asc')); messagesUnsubscribe = onSnapshot(q, async (snap)=>{ const msgs = snap.docs.map(d=>d.data()); renderMessages(msgs); await markMessagesRead(chatId,currentUser); }); }
+        function renderMessages(msgs) { const container = document.getElementById('chatMessagesContainer'); if(!container) return; container.innerHTML = msgs.map(m=>`<div class="message ${m.senderId===currentUser?'sent':'received'}"><div>${escapeHtml(m.text)}</div><small>${new Date(m.timestamp).toLocaleTimeString()}</small></div>`).join(''); container.scrollTop=container.scrollHeight; }
+        async function showChat() { if(!currentUser){showLogin();return;} let chatId = await getOrCreateChatId(currentUser, ADMIN_UID); document.getElementById('mainContent').innerHTML = `<div class="glass-card" style="height:70vh; display:flex; flex-direction:column;"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2>Live Chat with Admin</h2></div><div id="chatMessagesContainer" style="flex:1; overflow-y:auto; padding:15px; background:rgba(0,0,0,0.1); border-radius:16px;"></div><div class="chat-input-area mt-2"><input type="text" id="chatInput" class="chat-input" placeholder="Type..."><button class="chat-send-btn" onclick="sendMessageFromChat()">Send</button></div></div>`; loadMessages(chatId); window.currentChatId = chatId; }
+        window.showChat = showChat;
+        window.sendMessageFromChat = async function() { let inp = document.getElementById('chatInput'); if(inp.value.trim()){ await sendMessage(window.currentChatId, inp.value); inp.value=''; } };
+        function escapeHtml(s) { return s.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+        
+        // AI Chat (basic fallback)
+        async function showAIChat() { if(!currentUser){showLogin();return;} document.getElementById('mainContent').innerHTML = `<div class="glass-card"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2>AI Assistant</h2></div><div id="aiChatMsgs" class="chat-container" style="height:400px;"></div><div class="chat-input-area"><input id="aiInput" class="chat-input" placeholder="Ask about trades..."><button class="chat-send-btn" onclick="askAI()">Ask</button></div></div>`; }
+        window.showAIChat = showAIChat;
+        window.askAI = async function() { let inp=document.getElementById('aiInput'); if(!inp.value) return; let msgsDiv=document.getElementById('aiChatMsgs'); msgsDiv.innerHTML+=`<div class="message user-message">${inp.value}</div>`; let reply = `You asked: "${inp.value}". I'm a demo AI. Configure API key for real responses.`; msgsDiv.innerHTML+=`<div class="message ai-message">${reply}</div>`; inp.value=''; msgsDiv.scrollTop=msgsDiv.scrollHeight; };
+        
+        // Watchlist page
+        async function showWatchlist() { if(!currentUser){showLogin();return;} await loadWatchlist(); document.getElementById('mainContent').innerHTML = `<div class="glass-card"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2>Watchlist</h2><button class="btn btn-custom ms-auto" onclick="openWatchlistModal()">+ Add</button></div><table class="watchlist-table"><thead><tr><th>Symbol</th><th>Price</th><th></th></tr></thead><tbody id="watchlistBody">${watchlist.map(w=>`<tr><td>${w.symbol}</td><td id="price-${w.symbol}">Loading...</td><td><button class="remove-btn" onclick="removeWatchlistItem('${w.symbol}')">✕</button></td></tr>`).join('')}</tbody></table></div>`; for(let item of watchlist){ let q=await fetchQuoteDetails(item.symbol); if(q) document.getElementById(`price-${item.symbol}`).innerText = `${q.currency==='INR'?'₹':'$'}${q.price.toFixed(2)}`; } }
+        window.showWatchlist = showWatchlist;
+        window.openWatchlistModal = ()=>document.getElementById('watchlistModal').style.display='flex';
+        window.closeWatchlistModal = ()=>document.getElementById('watchlistModal').style.display='none';
+        window.addWatchlistItemFromModal = async function(){ let sym=document.getElementById('watchlistSymbolInput').value.trim().toUpperCase(); if(sym){ await addToWatchlist(sym); showWatchlist(); closeWatchlistModal(); } };
+        window.removeWatchlistItem = async(sym)=>{ await removeFromWatchlist(sym); showWatchlist(); };
+        
+        // Profile, etc.
+        function showProfile() { if(!currentUser){showLogin();return;} document.getElementById('mainContent').innerHTML = `<div class="glass-card"><div class="top-bar"><span class="back-btn" onclick="goBack()"><i class="bi bi-arrow-left"></i> Back</span><h2>Profile</h2></div><p>User ID: ${currentUser}</p><p>Trades: ${trades.length}</p><button class="btn btn-danger" onclick="resetAllTrades()">Reset All Trades</button></div>`; }
+        window.showProfile = showProfile;
+        window.resetAllTrades = async()=>{ if(confirm('Delete ALL trades?')){ const q=query(collection(db,'trades'),where('userId','==',currentUser)); const snap=await getDocs(q); snap.forEach(async d=>await deleteDoc(d.ref)); await loadTrades(); showDashboard(); showAlert('All trades deleted','info'); } };
+        
+        // Auth
+        function showLogin() { document.getElementById('mainContent').innerHTML = `<div class="auth-card"><h2>Sign in with Google</h2><button onclick="googleLogin()" class="btn btn-outline-custom w-100">Continue with Google</button></div>`; }
+        window.showLogin = showLogin;
+        window.googleLogin = async()=>{ try{ const res=await signInWithPopup(auth,provider); currentUser=res.user.uid; await loadTrades(); await loadWatchlist(); updateNav(); showDashboard(); }catch(e){ showAlert(e.message,'danger'); } };
+        window.logout = async()=>{ if(messagesUnsubscribe) messagesUnsubscribe(); await signOut(auth); currentUser=null; trades=[]; watchlist=[]; updateNav(); showLogin(); };
+        
+        function updateNav() { const nav=document.getElementById('navLinks'); if(!nav) return; if(currentUser){ nav.innerHTML=`<li><a class="nav-link" href="#" onclick="navigateTo(showDashboard,[])">Dashboard</a></li><li><a class="nav-link" href="#" onclick="navigateTo(showTrades,[])">Trades</a></li><li><a class="nav-link" href="#" onclick="navigateTo(showAddTrade,[])">New Trade</a></li><li><a class="nav-link" href="#" onclick="navigateTo(showWatchlist,[])">Watchlist</a></li><li><a class="nav-link" href="#" onclick="navigateTo(showAIChat,[])">AI</a></li><li><a class="nav-link" href="#" onclick="navigateTo(showChat,[])">Live Chat</a></li><li><a class="nav-link" href="#" onclick="navigateTo(showProfile,[])">Profile</a></li><li><a class="nav-link" href="#" onclick="logout()">Logout</a></li>`; } else { nav.innerHTML=`<li><a class="nav-link" href="#" onclick="toggleTheme()">Theme</a></li><li><a class="nav-link" href="#" onclick="setCurrency('USD')">USD</a></li><li><a class="nav-link" href="#" onclick="setCurrency('INR')">INR</a></li>`; } }
+        
+        // Init global ticker symbols from Firestore
+        (async function initSymbols() { let ind=await getAdminTickerIndian(); let glob=await getAdminTickerGlobal(); if(Array.isArray(ind) && ind.length) nseSymbols = ind; if(Array.isArray(glob) && glob.length) globalSymbols = glob; })();
+        
+        onAuthStateChanged(auth, async (user) => { if(user){ currentUser=user.uid; await loadTrades(); await loadWatchlist(); updateNav(); showDashboard(); } else { if(messagesUnsubscribe) messagesUnsubscribe(); currentUser=null; updateNav(); showLogin(); } });
+        window.hideSplash = function() { let s=document.getElementById('splashScreen'); s.classList.add('fade-out'); setTimeout(()=>s.style.display='none',1200); };
+        window.toggleFullscreen = function() { if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); };
+        setTimeout(()=>window.hideSplash(), 2000);
+        
+        // Background particles (simplified)
+        const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d'); let width, height, particles=[]; function initParticles(){ width=canvas.width=window.innerWidth; height=canvas.height=window.innerHeight; for(let i=0;i<40;i++) particles.push({x:Math.random()*width, y:Math.random()*height, vx:(Math.random()-0.5)*0.8, vy:(Math.random()-0.5)*0.8}); } function draw(){ ctx.clearRect(0,0,width,height); particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; if(p.x<0||p.x>width) p.vx*=-1; if(p.y<0||p.y>height) p.vy*=-1; ctx.fillStyle='#00ffff'; ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fill(); }); requestAnimationFrame(draw); } window.addEventListener('resize',initParticles); initParticles(); draw();
+    </script>
+</body>
+</html>
